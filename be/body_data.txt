@@ -1,0 +1,17 @@
+{
+    "profile_code": "EMP001",
+    "name": "Rahul Vishwakarma",
+    "contact_person": "Amit Sharma",
+    "mobile_no": "9876543210",
+    "state": 1,
+    "city": 10,
+    "address": "Delhi, India",
+    "profile_image": "profile.jpg",
+    "password": "123456",
+    "role_type": 1,
+    "joining_date": "2026-05-13",
+    "online_status": 1,
+    "working_hrs": "09:00:00",
+    "is_overtime_allowed": 1,
+    "status": 1
+}

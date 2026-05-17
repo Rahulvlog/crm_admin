@@ -44,3 +44,49 @@ class CityMasterSerializer(serializers.ModelSerializer):
     class Meta:
         model = CityMaster
         fields = '__all__'
+
+from .models import TasksRecord
+
+
+class TasksRecordSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = TasksRecord
+        fields = '__all__'
+
+
+from .models import ActivityRecord
+
+
+class ActivityRecordSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ActivityRecord
+        fields = '__all__'
+
+from .models import ProjectMaster
+
+
+class ProjectMasterSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProjectMaster
+        fields = '__all__'
+
+from .models import RoleMaster
+
+
+class RoleMasterSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = RoleMaster
+        fields = '__all__'
+
+from .models import AppNotificationHistory
+
+
+class AppNotificationHistorySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AppNotificationHistory
+        fields = '__all__'

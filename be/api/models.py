@@ -72,3 +72,100 @@ class CityMaster(models.Model):
     class Meta:
         db_table = 'city_master'
         managed = False
+
+class TasksRecord(models.Model):
+
+    emp_id = models.IntegerField(default=0)
+    client_id = models.IntegerField(default=0)
+    project_id = models.IntegerField(default=0)
+    state = models.IntegerField(default=0)
+    city = models.IntegerField(default=0)
+    tehsil = models.CharField(max_length=500, default='')
+    code = models.CharField(max_length=20, default='0')
+    site_location = models.CharField(max_length=500, default='')
+    flex_range = models.IntegerField(default=1)
+    location_type = models.CharField(max_length=500, default='')
+    dealer_name = models.CharField(max_length=500, default='')
+    no_of_flex = models.IntegerField(default=0)
+    size_of_flex = models.CharField(max_length=1000, default='')
+    task_status = models.IntegerField(default=1)
+    remark = models.TextField(null=True, blank=True)
+    status = models.IntegerField(default=0)
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'tasks_record'
+        managed = False
+
+class ActivityRecord(models.Model):
+
+    sync_id = models.IntegerField()
+    activity_ref_no = models.CharField(max_length=100)
+    emp_id = models.IntegerField(default=0)
+    project_id = models.IntegerField(null=True, blank=True)
+    flex_id = models.IntegerField()
+    task_id = models.IntegerField(default=0)
+    flex_size = models.CharField(max_length=500, default='')
+    task_sno = models.IntegerField(default=0)
+    photo = models.CharField(max_length=1000, default='')
+    latitude = models.CharField(max_length=250, default='0')
+    longitude = models.CharField(max_length=250, default='0')
+    gps_address = models.CharField(max_length=1000, default='')
+    remark = models.CharField(max_length=1000, default='')
+    remark1 = models.TextField(null=True, blank=True)
+    view_id = models.IntegerField(default=0)
+    distance_from_last = models.CharField(max_length=200, null=True, blank=True)
+    status = models.IntegerField(default=0)
+    created_date = models.DateTimeField(auto_now=True)
+    updated_date = models.DateTimeField(auto_now=True)
+    timestaps = models.BigIntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'activity_record'
+        managed = False
+
+class ProjectMaster(models.Model):
+
+    title = models.CharField(max_length=250)
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    description = models.CharField(max_length=1000, default='')
+    status = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'project_master'
+        managed = False
+
+# models.py
+
+from django.db import models
+
+
+class RoleMaster(models.Model):
+
+    name = models.CharField(max_length=100)
+    status = models.IntegerField(default=0)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'role_master'
+        managed = False
+
+class AppNotificationHistory(models.Model):
+
+    user_id = models.CharField(max_length=50, default='0')
+    sender_id = models.CharField(max_length=10, default='0')
+    created_dt = models.DateTimeField(auto_now_add=True)
+    unicast = models.IntegerField()
+    player_id = models.TextField(null=True, blank=True)
+    title = models.CharField(max_length=100)
+    message = models.CharField(max_length=500)
+    route_date = models.TextField()
+    image_url = models.CharField(max_length=500, default='')
+
+    class Meta:
+        db_table = 'app_notification_history'
+        managed = False

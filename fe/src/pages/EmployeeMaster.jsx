@@ -14,8 +14,8 @@ export default function EmployeeMaster() {
     setLoading(true);
     try {
       const [empRes, cityRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/v1/employees'),
-        axios.get('http://localhost:5000/api/v1/cities')
+        axios.get('http://127.0.0.1:8000/api/app-users/'),
+        axios.get('http://127.0.0.1:8000/api/city-master/')
       ]);
       setEmployees(empRes.data.data || []);
       setCities(cityRes.data.data || []);

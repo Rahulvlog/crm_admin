@@ -10,7 +10,7 @@ export default function ProjectMaster() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:5000/api/v1/projects');
+      const res = await axios.get('http://127.0.0.1:8000/api/project-master/');
       setProjects(res.data.data || []);
       setError(null);
     } catch (err) {

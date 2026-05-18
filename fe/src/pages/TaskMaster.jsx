@@ -24,10 +24,10 @@ export default function TaskMaster() {
     setLoading(true);
     try {
       const [tasksRes, clientsRes, projectsRes, empRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/v1/tasks'),
+        axios.get('http://127.0.0.1:8000/api/tasks-record/'),
         axios.get('http://localhost:5000/api/v1/clients'),
-        axios.get('http://localhost:5000/api/v1/projects'),
-        axios.get('http://localhost:5000/api/v1/employees'),
+        axios.get('http://127.0.0.1:8000/api/project-master/'),
+        axios.get('http://127.0.0.1:8000/api/app-users/'),
       ]);
       setTasks(tasksRes.data.data || []);
       setClients(clientsRes.data.data || []);

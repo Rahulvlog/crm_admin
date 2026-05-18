@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Menu, User, FileText, List, ClipboardList, MapPin, Building2, 
-  FolderGit2, Users, Contact, CalendarCheck, CalendarMinus, LogOut,
+  FolderGit2, Users, Contact, LogOut,
   Sun, Moon, Bell, Search, LayoutDashboard
 } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
@@ -28,8 +28,6 @@ export default function Layout() {
     { name: 'Projects', path: '/project-master', icon: <FolderGit2 size={20} /> },
     { name: 'Clients', path: '/client-master', icon: <Users size={20} /> },
     { name: 'Employees', path: '/employee-master', icon: <Contact size={20} /> },
-    { name: 'Attendance', path: '/manage-attendance', icon: <CalendarCheck size={20} /> },
-    { name: 'Manage Leave', path: '/manage-leave', icon: <CalendarMinus size={20} /> },
   ];
 
   return (

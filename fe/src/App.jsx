@@ -11,8 +11,6 @@ import CityMaster from './pages/CityMaster';
 import ProjectMaster from './pages/ProjectMaster';
 import ClientMaster from './pages/ClientMaster';
 import EmployeeMaster from './pages/EmployeeMaster';
-import ManageAttendance from './pages/ManageAttendance';
-import ManageLeave from './pages/ManageLeave';
 
 function App() {
   return (
@@ -28,8 +26,6 @@ function App() {
           <Route path="/project-master" element={<ProjectMaster />} />
           <Route path="/client-master" element={<ClientMaster />} />
           <Route path="/employee-master" element={<EmployeeMaster />} />
-          <Route path="/manage-attendance" element={<ManageAttendance />} />
-          <Route path="/manage-leave" element={<ManageLeave />} />
         </Route>
       </Routes>
     </BrowserRouter>

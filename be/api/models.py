@@ -45,7 +45,7 @@ class AppUsers(models.Model):
 
     class Meta:
         db_table = 'app_users'
-        managed = False
+        managed = True
 
 class StateMaster(models.Model):
 
@@ -58,7 +58,7 @@ class StateMaster(models.Model):
 
     class Meta:
         db_table = 'state_master'
-        managed = False
+        managed = True
 
 class CityMaster(models.Model):
 
@@ -71,7 +71,7 @@ class CityMaster(models.Model):
 
     class Meta:
         db_table = 'city_master'
-        managed = False
+        managed = True
 
 class TasksRecord(models.Model):
 
@@ -96,7 +96,7 @@ class TasksRecord(models.Model):
 
     class Meta:
         db_table = 'tasks_record'
-        managed = False
+        managed = True
 
 class ActivityRecord(models.Model):
 
@@ -123,7 +123,7 @@ class ActivityRecord(models.Model):
 
     class Meta:
         db_table = 'activity_record'
-        managed = False
+        managed = True
 
 class ProjectMaster(models.Model):
 
@@ -137,7 +137,7 @@ class ProjectMaster(models.Model):
 
     class Meta:
         db_table = 'project_master'
-        managed = False
+        managed = True
 
 # models.py
 
@@ -152,7 +152,7 @@ class RoleMaster(models.Model):
 
     class Meta:
         db_table = 'role_master'
-        managed = False
+        managed = True
 
 class AppNotificationHistory(models.Model):
 
@@ -168,4 +168,4 @@ class AppNotificationHistory(models.Model):
 
     class Meta:
         db_table = 'app_notification_history'
-        managed = False
+        managed = True

@@ -11,6 +11,7 @@ from api.project_master import project_master_api
 from api.roles import role_master_api
 from api.state_city import city_master_api, state_master_api
 from api.task_record import tasks_record_api
+from api.upload_image import upload_image_api
 from . import views
 from .client_master import client_api
 
@@ -19,6 +20,8 @@ urlpatterns = [
     # path('cities/', views.city_list_create, name='city-list-create'),
     # path('cities/<int:pk>/', views.city_detail, name='city-detail'),
     # path('client', client_api),
+    path('upload-image/', upload_image_api),
+    
     path('app-users/', app_users_api),
     path('app-users/<int:id>/', app_users_api),
     path('state-master/', state_master_api),

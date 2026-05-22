@@ -86,10 +86,18 @@ class ProjectMasterSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class GetProjectMasterSerializer(serializers.ModelSerializer):
-    manager_id  = GetAppUsersSerializer()
+    manager_id = serializers.SerializerMethodField()
+
     class Meta:
         model = ProjectMaster
         fields = '__all__'
+
+    def get_manager_id(self, obj):
+        try:
+            manager = AppUsers.objects.get(id=obj.manager_id)
+            return GetAppUsersSerializer(manager).data
+        except AppUsers.DoesNotExist:
+            return None
 
 from .models import TasksRecord
 
@@ -101,31 +109,67 @@ class TasksRecordSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class GetTasksRecordSerializer(serializers.ModelSerializer):
-    emp_id = GetAppUsersSerializer()
-    dealer_name = GetAppUsersSerializer()
-    project_id = ProjectMasterSerializer()
-    client_id = ProjectMasterSerializer()
+
+    emp_id = serializers.SerializerMethodField()
+    dealer_name = serializers.SerializerMethodField()
+    project_id = serializers.SerializerMethodField()
+    client_id = serializers.SerializerMethodField()
 
     class Meta:
         model = TasksRecord
         fields = '__all__'
 
+    def get_emp_id(self, obj):
+        try:
+            emp = AppUsers.objects.get(id=obj.emp_id)
+            return GetAppUsersSerializer(emp).data
+        except AppUsers.DoesNotExist:
+            return None
+
+    def get_dealer_name(self, obj):
+        try:
+            dealer = AppUsers.objects.get(id=obj.dealer_name)
+            return GetAppUsersSerializer(dealer).data
+        except AppUsers.DoesNotExist:
+            return None
+
+    def get_project_id(self, obj):
+        try:
+            project = ProjectMaster.objects.get(id=obj.project_id)
+            return ProjectMasterSerializer(project).data
+        except ProjectMaster.DoesNotExist:
+            return None
+
+    def get_client_id(self, obj):
+        try:
+            client = AppUsers.objects.get(id=obj.client_id)
+            return GetAppUsersSerializer(client).data
+        except AppUsers.DoesNotExist:
+            return None
 
 from .models import ActivityRecord
 
 
 class ActivityRecordSerializer(serializers.ModelSerializer):
-    task_id = GetTasksRecordSerializer
+    
 
     class Meta:
         model = ActivityRecord
         fields = '__all__'
 
 class GetActivityRecordSerializer(serializers.ModelSerializer):
-    
+    task_id = serializers.SerializerMethodField()
+
     class Meta:
         model = ActivityRecord
         fields = '__all__'
+
+    def get_task_id(self, obj):
+        try:
+            task = TasksRecord.objects.get(id=obj.task_id)
+            return GetTasksRecordSerializer(task).data
+        except TasksRecord.DoesNotExist:
+            return None
 
 
 

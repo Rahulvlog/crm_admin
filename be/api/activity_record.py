@@ -3,7 +3,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import ActivityRecord
-from .serializers import ActivityRecordSerializer
+from .serializers import ActivityRecordSerializer, GetActivityRecordSerializer
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -14,11 +14,32 @@ def activity_record_api(request, id=None):
     # =========================
     if request.method == 'GET':
 
+        # Base queryset
+        activities = ActivityRecord.objects.all()
+
+        # Query params
+        emp_id = request.query_params.get('user_id', None)
+        task_id = request.query_params.get('task_id', None)
+        dealer_id = request.query_params.get('dealer_id', None)
+        project_id = request.query_params.get('project_id', None)
+
+        # Apply filters if params exist
+        if emp_id is not None:
+            activities = activities.filter(emp_id=emp_id)
+
+        if task_id is not None:
+            activities = activities.filter(task_id=task_id)
+
+        if dealer_id is not None:
+            activities = activities.filter(dealer_id=dealer_id)
+
+        if project_id is not None:
+            activities = activities.filter(project_id=project_id)
+
         # Single Data
         if id:
-
             try:
-                activity = ActivityRecord.objects.get(id=id)
+                activity = activities.get(id=id)
 
             except ActivityRecord.DoesNotExist:
                 return Response({
@@ -26,7 +47,7 @@ def activity_record_api(request, id=None):
                     "message": "Activity not found"
                 })
 
-            serializer = ActivityRecordSerializer(activity)
+            serializer = GetActivityRecordSerializer(activity)
 
             return Response({
                 "status": True,
@@ -34,9 +55,9 @@ def activity_record_api(request, id=None):
             })
 
         # All Data
-        activities = ActivityRecord.objects.all().order_by('-id')
+        activities = activities.order_by('-id')
 
-        serializer = ActivityRecordSerializer(activities, many=True)
+        serializer = GetActivityRecordSerializer(activities, many=True)
 
         return Response({
             "status": True,

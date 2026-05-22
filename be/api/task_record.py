@@ -3,7 +3,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import TasksRecord
-from .serializers import TasksRecordSerializer
+from .serializers import TasksRecordSerializer, GetTasksRecordSerializer
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -14,11 +14,32 @@ def tasks_record_api(request, id=None):
     # =========================
     if request.method == 'GET':
 
+        # Base queryset
+        tasks = TasksRecord.objects.all()
+
+        # Query params
+        emp_id = request.query_params.get('user_id', None)
+        client_id = request.query_params.get('manager_id', None)
+        dealer_name = request.query_params.get('dealer_id', None)
+        project_id = request.query_params.get('project_id', None)
+
+        # Apply filters if params exist
+        if emp_id is not None:
+            tasks = tasks.filter(emp_id=emp_id)
+
+        if client_id is not None:
+            tasks = tasks.filter(client_id=client_id)
+
+        if dealer_name is not None:
+            tasks = tasks.filter(dealer_name=dealer_name)
+
+        if project_id is not None:
+            tasks = tasks.filter(project_id=project_id)
+
         # Single Data
         if id:
-
             try:
-                task = TasksRecord.objects.get(id=id)
+                task = tasks.get(id=id)
 
             except TasksRecord.DoesNotExist:
                 return Response({
@@ -26,7 +47,7 @@ def tasks_record_api(request, id=None):
                     "message": "Task not found"
                 })
 
-            serializer = TasksRecordSerializer(task)
+            serializer = GetTasksRecordSerializer(task)
 
             return Response({
                 "status": True,
@@ -34,15 +55,14 @@ def tasks_record_api(request, id=None):
             })
 
         # All Data
-        tasks = TasksRecord.objects.all().order_by('-id')
+        tasks = tasks.order_by('-id')
 
-        serializer = TasksRecordSerializer(tasks, many=True)
+        serializer = GetTasksRecordSerializer(tasks, many=True)
 
         return Response({
             "status": True,
             "data": serializer.data
         })
-
     # =========================
     # POST API
     # =========================

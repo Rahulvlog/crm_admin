@@ -3,7 +3,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import ProjectMaster
-from .serializers import ProjectMasterSerializer
+from .serializers import ProjectMasterSerializer, GetProjectMasterSerializer
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -13,12 +13,20 @@ def project_master_api(request, id=None):
     # GET API
     # =========================
     if request.method == 'GET':
+    
+        manager_id = request.query_params.get('manager_id', None)
+
+        # Base queryset
+        projects = ProjectMaster.objects.all()
+
+        # Filter by manager_id if provided
+        if manager_id is not None:
+            projects = projects.filter(manager_id=manager_id)
 
         # Single Data
         if id:
-
             try:
-                project = ProjectMaster.objects.get(id=id)
+                project = projects.get(id=id)
 
             except ProjectMaster.DoesNotExist:
                 return Response({
@@ -26,7 +34,7 @@ def project_master_api(request, id=None):
                     "message": "Project not found"
                 })
 
-            serializer = ProjectMasterSerializer(project)
+            serializer = GetProjectMasterSerializer(project)
 
             return Response({
                 "status": True,
@@ -34,15 +42,14 @@ def project_master_api(request, id=None):
             })
 
         # All Data
-        projects = ProjectMaster.objects.all().order_by('-id')
+        projects = projects.order_by('-id')
 
-        serializer = ProjectMasterSerializer(projects, many=True)
+        serializer = GetProjectMasterSerializer(projects, many=True)
 
         return Response({
             "status": True,
             "data": serializer.data
         })
-
     # =========================
     # POST API
     # =========================

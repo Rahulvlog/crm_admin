@@ -47,6 +47,7 @@ class AppUsers(models.Model):
         db_table = 'app_users'
         managed = True
 
+
 class StateMaster(models.Model):
 
     name = models.CharField(max_length=250)
@@ -104,11 +105,12 @@ class ActivityRecord(models.Model):
     activity_ref_no = models.CharField(max_length=100)
     emp_id = models.IntegerField(default=0)
     project_id = models.IntegerField(null=True, blank=True)
+    dealer_id = models.IntegerField(default=0)
     flex_id = models.IntegerField()
     task_id = models.IntegerField(default=0)
     flex_size = models.CharField(max_length=500, default='')
     task_sno = models.IntegerField(default=0)
-    photo = models.CharField(max_length=1000, default='')
+    photo = models.TextField(default='')
     latitude = models.CharField(max_length=250, default='0')
     longitude = models.CharField(max_length=250, default='0')
     gps_address = models.CharField(max_length=1000, default='')
@@ -126,7 +128,7 @@ class ActivityRecord(models.Model):
         managed = True
 
 class ProjectMaster(models.Model):
-
+    manager_id = models.CharField(max_length=50, default='0')
     title = models.CharField(max_length=250)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)

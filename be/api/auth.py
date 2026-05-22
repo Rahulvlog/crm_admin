@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import AppUsers
-from .serializers import AppUsersSerializer
+from .serializers import AppUsersSerializer, GetAppUsersSerializer
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -24,7 +24,7 @@ def app_users_api(request, id=None):
                     "message": "User not found"
                 })
 
-            serializer = AppUsersSerializer(user)
+            serializer = GetAppUsersSerializer(user)
 
             return Response({
                 "status": True,
@@ -34,7 +34,7 @@ def app_users_api(request, id=None):
         # All Data
         users = AppUsers.objects.all()
 
-        serializer = AppUsersSerializer(users, many=True)
+        serializer = GetAppUsersSerializer(users, many=True)
 
         return Response({
             "status": True,

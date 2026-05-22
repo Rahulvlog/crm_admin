@@ -7,6 +7,7 @@ from django.urls import path
 from api.activity_record import activity_record_api
 from api.app_notification import app_notification_history_api
 from api.auth import app_users_api
+from api.login import login_api
 from api.project_master import project_master_api
 from api.roles import role_master_api
 from api.state_city import city_master_api, state_master_api
@@ -21,7 +22,7 @@ urlpatterns = [
     # path('cities/<int:pk>/', views.city_detail, name='city-detail'),
     # path('client', client_api),
     path('upload-image/', upload_image_api),
-    
+    path('login/', login_api),
     path('app-users/', app_users_api),
     path('app-users/<int:id>/', app_users_api),
     path('state-master/', state_master_api),

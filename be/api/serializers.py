@@ -22,10 +22,24 @@ from .models import CityMaster
 
 
 class CityMasterSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = CityMaster
+        fields = '__all__'
+
+class GetCityMasterSerializer(serializers.ModelSerializer):
+    state_id = serializers.SerializerMethodField()
 
     class Meta:
         model = CityMaster
         fields = '__all__'
+
+    def get_state_id(self, obj):
+        try:
+            state = StateMaster.objects.get(id=obj.state_id)
+            return StateMasterSerializer(state).data
+        except StateMaster.DoesNotExist:
+            return None
 from rest_framework import serializers
 from .models import AppUsers
 
@@ -39,15 +53,28 @@ class AppUsersSerializer(serializers.ModelSerializer):
 
 
 
-
-
-
 class GetAppUsersSerializer(serializers.ModelSerializer):
-    state = StateMasterSerializer()
-    city = CityMasterSerializer()
+    state = serializers.SerializerMethodField()
+    city = serializers.SerializerMethodField()
+
     class Meta:
         model = AppUsers
         fields = '__all__'
+
+    def get_state(self, obj):
+        try:
+            state = StateMaster.objects.get(id=obj.state)
+            return StateMasterSerializer(state).data
+        except:
+            return None
+
+    def get_city(self, obj):
+        try:
+            city = CityMaster.objects.get(id=obj.city)
+            return CityMasterSerializer(city).data
+        except:
+            return None
+
 
 from .models import ProjectMaster
 
@@ -59,7 +86,7 @@ class ProjectMasterSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class GetProjectMasterSerializer(serializers.ModelSerializer):
-    manager_id  = AppUsersSerializer()
+    manager_id  = GetAppUsersSerializer()
     class Meta:
         model = ProjectMaster
         fields = '__all__'

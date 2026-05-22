@@ -122,7 +122,7 @@ def state_master_api(request, id=None):
         })
     
 from .models import CityMaster
-from .serializers import CityMasterSerializer
+from .serializers import CityMasterSerializer, GetCityMasterSerializer
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -145,7 +145,7 @@ def city_master_api(request, id=None):
                     "message": "City not found"
                 })
 
-            serializer = CityMasterSerializer(city)
+            serializer = GetCityMasterSerializer(city)
 
             return Response({
                 "status": True,
@@ -155,7 +155,7 @@ def city_master_api(request, id=None):
         # All Data
         cities = CityMaster.objects.all().order_by('-id')
 
-        serializer = CityMasterSerializer(cities, many=True)
+        serializer = GetCityMasterSerializer(cities, many=True)
 
         return Response({
             "status": True,

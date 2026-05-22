@@ -147,6 +147,7 @@ class GetTasksRecordSerializer(serializers.ModelSerializer):
         except AppUsers.DoesNotExist:
             return None
 
+
 from .models import ActivityRecord
 
 
@@ -156,9 +157,10 @@ class ActivityRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = ActivityRecord
         fields = '__all__'
-
+import json
 class GetActivityRecordSerializer(serializers.ModelSerializer):
     task_id = serializers.SerializerMethodField()
+    photo = serializers.SerializerMethodField()
 
     class Meta:
         model = ActivityRecord
@@ -170,6 +172,17 @@ class GetActivityRecordSerializer(serializers.ModelSerializer):
             return GetTasksRecordSerializer(task).data
         except TasksRecord.DoesNotExist:
             return None
+        
+    def get_photo(self, obj):
+        if not obj.photo:
+            return []
+
+        try:
+            # If stored as JSON string
+            return json.loads(obj.photo)
+        except:
+            # If stored like comma separated string
+            return [x.strip() for x in obj.photo.split(',') if x.strip()]
 
 
 

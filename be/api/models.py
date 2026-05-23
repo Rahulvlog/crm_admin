@@ -79,6 +79,7 @@ class TasksRecord(models.Model):
     emp_id = models.IntegerField(default=0)
     client_id = models.IntegerField(default=0)
     project_id = models.IntegerField(default=0)
+    task_name = models.TextField(default='')
     state = models.IntegerField(default=0)
     city = models.IntegerField(default=0)
     tehsil = models.CharField(max_length=500, default='')
@@ -98,6 +99,8 @@ class TasksRecord(models.Model):
     class Meta:
         db_table = 'tasks_record'
         managed = True
+
+
 
 class ActivityRecord(models.Model):
 
@@ -126,6 +129,8 @@ class ActivityRecord(models.Model):
     class Meta:
         db_table = 'activity_record'
         managed = True
+
+
 
 class ProjectMaster(models.Model):
     manager_id = models.CharField(max_length=50, default='0')

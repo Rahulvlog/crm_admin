@@ -34,7 +34,7 @@ class AppUsers(models.Model):
     address = models.CharField(max_length=500, default='')
     profile_image = models.CharField(max_length=250, default='')
     password = models.CharField(max_length=100, default='')
-    role_type = models.IntegerField(default=0)
+    role_type = models.CharField(max_length=100, default='')
     joining_date = models.DateField(null=True, blank=True)
     online_status = models.IntegerField(default=1)
     working_hrs = models.TimeField(null=True, blank=True)

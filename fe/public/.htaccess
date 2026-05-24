@@ -1,0 +1,14 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Route API requests to PHP proxy (since mod_proxy is restricted on Hostinger)
+  RewriteRule ^api/(.*)$ api.php?path=$1 [QSA,L]
+
+  # Route React App
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !^/api/ [NC]
+  RewriteRule . /index.html [L]
+</IfModule>

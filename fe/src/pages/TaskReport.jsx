@@ -10,8 +10,8 @@ export default function TaskReport() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/api/tasks-record/');
-      setTasks(res.data.data || []);
+      const res = await axios.get('/api/activity-record/');
+      setTasks(res.data?.data || []);
       setError(null);
     } catch (err) {
       setError("Failed to fetch data from backend. Make sure the MySQL server is running.");
@@ -47,15 +47,20 @@ export default function TaskReport() {
     csvRows.push(headers.join(","));
 
     tasks.forEach((t, idx) => {
+      const projName = t.task_id?.project_id?.title || t.project_id?.title || '-';
+      const empName = t.task_id?.emp_id?.name || t.emp_id?.name || `Employee #${t.emp_id}`;
+      const dealerName = t.task_id?.dealer_name?.name || t.dealer_name?.name || '-';
+      const siteLoc = t.task_id?.site_location || t.site_location || '-';
+
       const row = [
         idx + 1,
         t.created_date ? new Date(t.created_date).toLocaleString('en-GB').replace(/,/g, '') : '-',
-        t.id,
-        `"${(t.project_name || '-').replace(/"/g, '""')}"`,
-        `"Employee #${t.emp_id}"`,
-        `"${(t.lex_size || '-').replace(/"/g, '""')}"`,
-        `"${(t.dealer_name || '-').replace(/"/g, '""')}"`,
-        `"${(t.site_location || '-').replace(/"/g, '""')}"`,
+        t.flex_id || t.id,
+        `"${projName.replace(/"/g, '""')}"`,
+        `"${empName.replace(/"/g, '""')}"`,
+        `"${(t.flex_size || '-').replace(/"/g, '""')}"`,
+        `"${dealerName.replace(/"/g, '""')}"`,
+        `"${siteLoc.replace(/"/g, '""')}"`,
         `"${(t.gps_address || '-').replace(/"/g, '""')}"`,
         t.status == 1 ? 'Completed' : 'Pending'
       ];
@@ -188,18 +193,18 @@ export default function TaskReport() {
                        {t?.created_date ? new Date(t.created_date).toLocaleString('en-GB') : '-'}
                     </td>
                     <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">Flex ID:</span> {t?.id} <br/>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">Project:</span> {t?.project_name}
+                        <span className="font-bold text-slate-800 dark:text-slate-200">Flex ID:</span> {t?.flex_id || t?.id} <br/>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">Project:</span> {t?.task_id?.project_id?.title || t?.project_id?.title || '-'}
                     </td>
-                    <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">Employee #{t?.emp_id}</td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{t?.lex_size || '-'}</td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{t?.dealer_name || '-'}</td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{t?.site_location || '-'}</td>
+                    <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">{t?.task_id?.emp_id?.name || t?.emp_id?.name || `Employee #${t?.emp_id}`}</td>
+                    <td className="px-5 py-3 text-sm text-slate-500">{t?.flex_size || '-'}</td>
+                    <td className="px-5 py-3 text-sm text-slate-500">{t?.task_id?.dealer_name?.name || t?.dealer_name?.name || '-'}</td>
+                    <td className="px-5 py-3 text-sm text-slate-500">{t?.task_id?.site_location || t?.site_location || '-'}</td>
                     
                     <td className="px-5 py-3 text-center">
-                       {t?.photo ? <img src={t.photo} alt="t" className="w-10 h-10 rounded-md object-cover shadow-sm mx-auto" /> : '-'}
+                       {t?.photo && t.photo.length > 0 ? <img src={t.photo[0]} alt="t" className="w-10 h-10 rounded-md object-cover shadow-sm mx-auto" /> : '-'}
                     </td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{t?.view_name || '-'}</td>
+                    <td className="px-5 py-3 text-sm text-slate-500">{t?.view_id || '-'}</td>
                     <td className="px-5 py-3 text-sm text-slate-500">{t?.gps_address || '-'}</td>
 
                     <td className="px-5 py-3 text-sm font-medium text-center">

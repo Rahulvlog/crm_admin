@@ -35,20 +35,19 @@ export default function AddTask() {
   useEffect(() => {
     const fetchLookups = async () => {
       try {
-        const [statesRes, citiesRes, clientsRes, projectsRes, empRes] = await Promise.all([
+        const [statesRes, citiesRes, projectsRes, empRes] = await Promise.allSettled([
           axios.get('/api/state-master/'),
           axios.get('/api/city-master/'),
-          axios.get('/api/clients/'),
           axios.get('/api/project-master/'),
           axios.get('/api/app-users/')
         ]);
-        setStates(statesRes.data?.data || []);
-        setCities(citiesRes.data?.data || []);
-        setClients(clientsRes.data?.data || []);
-        setProjects(projectsRes.data?.data || []);
-        setEmployees(empRes.data?.data || []);
+        
+        if (statesRes.status === 'fulfilled') setStates(statesRes.value.data?.data || []);
+        if (citiesRes.status === 'fulfilled') setCities(citiesRes.value.data?.data || []);
+        if (projectsRes.status === 'fulfilled') setProjects(projectsRes.value.data?.data || []);
+        if (empRes.status === 'fulfilled') setEmployees(empRes.value.data?.data || []);
       } catch (e) {
-        console.error("Failed to load lookups");
+        console.error("Failed to load lookups", e);
       }
     };
     fetchLookups();
@@ -95,8 +94,8 @@ export default function AddTask() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.client_id || !formData.project_id || !formData.emp_id) {
-      setError("Please select Client, Project, and Employee.");
+    if (!formData.project_id || !formData.emp_id) {
+      setError("Please select Project and Employee.");
       return;
     }
 
@@ -105,8 +104,19 @@ export default function AddTask() {
     setSuccess(false);
 
     try {
+      let loggedInUserId = null;
+      try {
+        const userDataStr = localStorage.getItem('user');
+        if (userDataStr) {
+          loggedInUserId = JSON.parse(userDataStr).id;
+        }
+      } catch (e) {
+        console.error("Could not parse user from local storage");
+      }
+
       const payload = {
         ...formData,
+        client_id: loggedInUserId || formData.client_id, // Use logged-in user as client
         state_id: formData.state_id || 1,
         city_id: formData.city_id || 101
       };
@@ -204,13 +214,7 @@ export default function AddTask() {
               <input type="text" name="code" value={formData.code} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="TSK-001" />
             </div>
             
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Client</label>
-              <select name="client_id" value={formData.client_id} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all">
-                <option value="">-Select Client-</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
+            {/* Client dropdown removed as requested; dynamically assigned in payload */}
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Project</label>
@@ -224,7 +228,7 @@ export default function AddTask() {
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Assign Employee</label>
               <select name="emp_id" value={formData.emp_id} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all">
                 <option value="">-Select Employee-</option>
-                {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                {employees.filter(e => String(e.role_type).toLowerCase() === 'user').map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
             </div>
 
@@ -259,7 +263,10 @@ export default function AddTask() {
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Dealer Name</label>
-              <input type="text" name="dealer_name" value={formData.dealer_name} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="Dealer name" />
+              <select name="dealer_name" value={formData.dealer_name} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all">
+                <option value="">-Select Dealer-</option>
+                {employees.filter(e => [4, '4'].includes(e.role_type) || String(e.role_type).toLowerCase() === 'dealer').map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
             </div>
 
             <div className="flex gap-4">

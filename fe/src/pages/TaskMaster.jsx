@@ -24,16 +24,18 @@ export default function TaskMaster() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [tasksRes, clientsRes, projectsRes, empRes] = await Promise.all([
+      const [tasksRes, clientsRes, projectsRes, empRes] = await Promise.allSettled([
         axios.get('/api/tasks-record/'),
         axios.get('/api/v1/clients'),
         axios.get('/api/project-master/'),
         axios.get('/api/app-users/'),
       ]);
-      setTasks(tasksRes.data.data || []);
-      setClients(clientsRes.data.data || []);
-      setProjects(projectsRes.data.data || []);
-      setEmployees(empRes.data.data || []);
+      
+      if (tasksRes.status === 'fulfilled') setTasks(tasksRes.value.data?.data || []);
+      if (clientsRes.status === 'fulfilled') setClients(clientsRes.value.data?.data || []);
+      if (projectsRes.status === 'fulfilled') setProjects(projectsRes.value.data?.data || []);
+      if (empRes.status === 'fulfilled') setEmployees(empRes.value.data?.data || []);
+      
       setError(null);
     } catch (err) {
       console.error("API Fetch Error:", err);
@@ -70,13 +72,23 @@ export default function TaskMaster() {
     }
   };
 
-  // Compute filtered tasks
+  // Compute filtered tasks safely, accounting for fields that might be expanded into objects by the backend
   const filteredTasks = tasks.filter(t => {
-    if (filters.client_id && String(t.client_id) !== String(filters.client_id)) return false;
-    if (filters.project_id && String(t.project_id) !== String(filters.project_id)) return false;
-    if (filters.emp_id && String(t.emp_id) !== String(filters.emp_id)) return false;
-    if (filters.site_location && !t.site_location?.toLowerCase().includes(filters.site_location.toLowerCase())) return false;
-    if (filters.dealer_name && !t.dealer_name?.toLowerCase().includes(filters.dealer_name.toLowerCase())) return false;
+    const cId = typeof t.client_id === 'object' && t.client_id ? t.client_id.id : t.client_id;
+    if (filters.client_id && String(cId) !== String(filters.client_id)) return false;
+
+    const pId = typeof t.project_id === 'object' && t.project_id ? t.project_id.id : t.project_id;
+    if (filters.project_id && String(pId) !== String(filters.project_id)) return false;
+
+    const eId = typeof t.emp_id === 'object' && t.emp_id ? t.emp_id.id : t.emp_id;
+    if (filters.emp_id && String(eId) !== String(filters.emp_id)) return false;
+
+    const loc = typeof t.site_location === 'string' ? t.site_location : '';
+    if (filters.site_location && !loc.toLowerCase().includes(filters.site_location.toLowerCase())) return false;
+
+    const dName = typeof t.dealer_name === 'object' && t.dealer_name ? String(t.dealer_name.id || t.dealer_name.name || '') : String(t.dealer_name || '');
+    if (filters.dealer_name && !dName.toLowerCase().includes(filters.dealer_name.toLowerCase())) return false;
+
     return true;
   });
 
@@ -128,7 +140,7 @@ export default function TaskMaster() {
                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Employee Name</label>
                <select name="emp_id" value={filters.emp_id} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors text-slate-700 dark:text-slate-200 cursor-pointer">
                 <option value="">-Select-</option>
-                {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                {employees.filter(e => String(e.role_type).toLowerCase() === 'user').map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
             </div>
             <div>
@@ -137,7 +149,10 @@ export default function TaskMaster() {
             </div>
             <div>
                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Dealer</label>
-               <input type="text" name="dealer_name" value={filters.dealer_name} onChange={handleFilterChange} placeholder="Dealer Name" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors text-slate-700 dark:text-slate-200" />
+               <select name="dealer_name" value={filters.dealer_name} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors text-slate-700 dark:text-slate-200 cursor-pointer">
+                <option value="">-Select Dealer-</option>
+                {employees.filter(e => [4, '4'].includes(e.role_type) || String(e.role_type).toLowerCase() === 'dealer').map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+               </select>
             </div>
             <div className="flex items-end gap-2 lg:col-span-3">
                <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-colors cursor-pointer">Search</button>
@@ -201,11 +216,21 @@ export default function TaskMaster() {
                        <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 bg-transparent" />
                     </td>
                     <td className="px-5 py-3 text-sm text-slate-500">{idx + 1}</td>
-                    <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">{t.project_name || '-'}</td>
-                    <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">{t.client_name || '-'}</td>
-                    <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">{/* employee specific name wasn't joined in the route, we fallback */employees.find(e => e.id === t.emp_id)?.name || '-'}</td>
-                    <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">{t.site_location || '-'}</td>
-                    <td className="px-5 py-3 text-sm text-slate-700 dark:text-slate-300">{t.dealer_name || '-'}</td>
+                    <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                      {typeof t.project_name === 'object' && t.project_name ? t.project_name.name || t.project_name.title : (t.project_name || '-')}
+                    </td>
+                    <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                      {typeof t.client_name === 'object' && t.client_name ? t.client_name.name : (t.client_name || '-')}
+                    </td>
+                    <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                      {typeof t.emp_id === 'object' && t.emp_id ? t.emp_id.name : (employees.find(e => e.id === t.emp_id)?.name || '-')}
+                    </td>
+                    <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                      {typeof t.site_location === 'object' && t.site_location ? t.site_location.name : (t.site_location || '-')}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-slate-700 dark:text-slate-300">
+                      {typeof t.dealer_name === 'object' && t.dealer_name ? t.dealer_name.name : (t.dealer_name || '-')}
+                    </td>
                     
                     <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400 text-center">
                        {t.created_date ? new Date(t.created_date).toLocaleString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '-'}

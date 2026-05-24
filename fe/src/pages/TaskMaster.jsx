@@ -122,13 +122,7 @@ export default function TaskMaster() {
       {/* Filters Card -> Exact reproduction of PHP filters */}
       <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6 p-5">
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Client Name</label>
-              <select name="client_id" value={filters.client_id} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors text-slate-700 dark:text-slate-200 cursor-pointer">
-                <option value="">-Select-</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
+
             <div>
               <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Project Name</label>
               <select name="project_id" value={filters.project_id} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors text-slate-700 dark:text-slate-200 cursor-pointer">
@@ -199,7 +193,6 @@ export default function TaskMaster() {
                   </th>
                   <th className="px-5 py-4 w-16">S.No.</th>
                   <th className="px-5 py-4">Project Name</th>
-                  <th className="px-5 py-4">Client Name</th>
                   <th className="px-5 py-4">Assign employee</th>
                   <th className="px-5 py-4">Site Location</th>
                   <th className="px-5 py-4">Dealer Name</th>
@@ -217,10 +210,7 @@ export default function TaskMaster() {
                     </td>
                     <td className="px-5 py-3 text-sm text-slate-500">{idx + 1}</td>
                     <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                      {typeof t.project_name === 'object' && t.project_name ? t.project_name.name || t.project_name.title : (t.project_name || '-')}
-                    </td>
-                    <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                      {typeof t.client_name === 'object' && t.client_name ? t.client_name.name : (t.client_name || '-')}
+                      {typeof t.project_id === 'object' && t.project_id ? t.project_id.title : (projects.find(p => p.id === t.project_id)?.title || '-')}
                     </td>
                     <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                       {typeof t.emp_id === 'object' && t.emp_id ? t.emp_id.name : (employees.find(e => e.id === t.emp_id)?.name || '-')}

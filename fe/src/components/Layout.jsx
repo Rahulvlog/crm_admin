@@ -4,11 +4,39 @@ import {
   FolderGit2, Users, Contact, LogOut,
   Sun, Moon, Bell, Search, LayoutDashboard
 } from 'lucide-react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
   const [darkMode, setDarkMode] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const userDataStr = localStorage.getItem('user');
+    if (!userDataStr) {
+      navigate('/login');
+    } else {
+      try {
+        const parsedUser = JSON.parse(userDataStr);
+        if (parsedUser.role_type !== 'Manager') {
+          localStorage.removeItem('user');
+          navigate('/login');
+        } else {
+          setUser(parsedUser);
+        }
+      } catch (err) {
+        localStorage.removeItem('user');
+        navigate('/login');
+      }
+    }
+  }, [navigate, location.pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
   useEffect(() => {
     if (darkMode) {
@@ -18,15 +46,19 @@ export default function Layout() {
     }
   }, [darkMode]);
 
+  if (!user) {
+    return <div className="h-screen w-screen flex items-center justify-center bg-slate-900 text-white">Loading...</div>;
+  }
+
   const menuItems = [
     { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
-    { name: 'Client Report', path: '/client-report', icon: <FileText size={20} /> },
+    // { name: 'Client Report', path: '/client-report', icon: <FileText size={20} /> },
     { name: 'Task Master', path: '/task-master', icon: <List size={20} /> },
     { name: 'Task Report', path: '/task-report', icon: <ClipboardList size={20} /> },
     { name: 'State Master', path: '/state-master', icon: <MapPin size={20} /> },
     { name: 'City Master', path: '/city-master', icon: <Building2 size={20} /> },
     { name: 'Projects', path: '/project-master', icon: <FolderGit2 size={20} /> },
-    { name: 'Clients', path: '/client-master', icon: <Users size={20} /> },
+    // { name: 'Clients', path: '/client-master', icon: <Users size={20} /> },
     { name: 'Employees', path: '/employee-master', icon: <Contact size={20} /> },
   ];
 
@@ -90,10 +122,10 @@ export default function Layout() {
               <User size={20} className="text-slate-500 dark:text-slate-400 absolute bottom-[-4px]" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">Administrator</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 truncate">A-000001</div>
+              <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">{user?.name || 'Administrator'}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.profile_code || 'A-000001'}</div>
             </div>
-            <button className="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+            <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
               <LogOut size={18} />
             </button>
           </div>

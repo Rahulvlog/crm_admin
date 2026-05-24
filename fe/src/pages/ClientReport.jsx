@@ -11,7 +11,7 @@ export default function ClientReport() {
     setLoading(true);
     try {
       // Reusing tasks since client report historically fetched activities linked to clients
-      const res = await axios.get('http://localhost:5000/api/v1/tasks');
+      const res = await axios.get('/api/v1/tasks');
       setTasks(res.data.data || []);
       setError(null);
     } catch (err) {

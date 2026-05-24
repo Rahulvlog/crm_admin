@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Loader2, AlertCircle, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 export default function ProjectMaster() {
@@ -10,13 +11,28 @@ export default function ProjectMaster() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://127.0.0.1:8000/api/project-master/');
+      const res = await axios.get('/api/project-master/');
       setProjects(res.data.data || []);
       setError(null);
     } catch (err) {
       setError("Failed to fetch data from backend. Make sure the MySQL server is running.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this project?")) return;
+    try {
+      await axios.delete(`/api/project-master/${id}/`, {
+        headers: {
+          'accesstoken': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mjg0LCJleHAiOjE3NjY0MTIzOTIsImlhdCI6MTc2NTgwNzU5Mn0.7HxWWa3-13A-5aTB2-KUalb4JBXKkclf6o6JGTDtAC8'
+        }
+      });
+      fetchData();
+    } catch (err) {
+      console.error("Failed to delete", err);
+      alert("Failed to delete project. Please try again.");
     }
   };
 
@@ -40,9 +56,9 @@ export default function ProjectMaster() {
       <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1 flex flex-col">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-indigo-600 dark:bg-slate-900">
            <h3 className="font-semibold text-white">Project Master List</h3>
-           <button className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors backdrop-blur-md border border-white/10 shadow-sm">
+           <Link to="/add-project" className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors backdrop-blur-md border border-white/10 shadow-sm">
               <Plus size={16} /> Add New
-           </button>
+           </Link>
         </div>
         
         <div className="flex-1 overflow-auto">
@@ -100,8 +116,8 @@ export default function ProjectMaster() {
 
                     <td className="px-5 py-3 text-sm text-center sticky right-0 bg-white/50 dark:bg-slate-950/50 group-hover:bg-slate-50/50 dark:group-hover:bg-slate-800/20 backdrop-blur-sm transition-colors">
                       <div className="flex items-center justify-center gap-2">
-                        <button className="text-cyan-600 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/30 px-3 py-1.5 rounded-lg transition-colors">Edit</button>
-                        <button className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 px-3 py-1.5 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                        <Link to={`/edit-project/${p.id}`} className="text-cyan-600 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/30 px-3 py-1.5 rounded-lg transition-colors">Edit</Link>
+                        <button onClick={() => handleDelete(p.id)} className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 px-3 py-1.5 rounded-lg transition-colors"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>

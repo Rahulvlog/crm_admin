@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Loader2, AlertCircle, FileSpreadsheet, Download, RefreshCw, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 export default function TaskMaster() {
@@ -24,10 +25,10 @@ export default function TaskMaster() {
     setLoading(true);
     try {
       const [tasksRes, clientsRes, projectsRes, empRes] = await Promise.all([
-        axios.get('http://127.0.0.1:8000/api/tasks-record/'),
-        axios.get('http://localhost:5000/api/v1/clients'),
-        axios.get('http://127.0.0.1:8000/api/project-master/'),
-        axios.get('http://127.0.0.1:8000/api/app-users/'),
+        axios.get('/api/tasks-record/'),
+        axios.get('/api/v1/clients'),
+        axios.get('/api/project-master/'),
+        axios.get('/api/app-users/'),
       ]);
       setTasks(tasksRes.data.data || []);
       setClients(clientsRes.data.data || []);
@@ -52,6 +53,21 @@ export default function TaskMaster() {
 
   const handleResetFilters = () => {
     setFilters({ client_id: '', project_id: '', emp_id: '', site_location: '', dealer_name: '' });
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this task?")) return;
+    try {
+      await axios.delete(`/api/tasks-record/${id}/`, {
+        headers: {
+          'accesstoken': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mjg0LCJleHAiOjE3NjY0MTIzOTIsImlhdCI6MTc2NTgwNzU5Mn0.7HxWWa3-13A-5aTB2-KUalb4JBXKkclf6o6JGTDtAC8'
+        }
+      });
+      fetchData();
+    } catch (err) {
+      console.error("Failed to delete", err);
+      alert("Failed to delete task. Please try again.");
+    }
   };
 
   // Compute filtered tasks
@@ -134,9 +150,9 @@ export default function TaskMaster() {
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-indigo-600 dark:bg-slate-900">
            <h3 className="font-semibold text-white">Task Master List</h3>
            <div className="flex items-center gap-3">
-              <button className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors backdrop-blur-md border border-white/10 shadow-sm">
+              <Link to="/add-task" className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors backdrop-blur-md border border-white/10 shadow-sm">
                  <Plus size={16} /> Add New
-              </button>
+              </Link>
               <button className="bg-rose-500/80 hover:bg-rose-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors backdrop-blur-md border border-rose-400/20 shadow-sm">
                  <Trash2 size={16} /> Delete All
               </button>
@@ -207,9 +223,10 @@ export default function TaskMaster() {
                     </td>
 
                     <td className="px-5 py-3 text-sm text-center sticky right-0 bg-white/50 dark:bg-slate-950/50 group-hover:bg-slate-50/50 dark:group-hover:bg-slate-800/20 backdrop-blur-sm transition-colors">
-                      <button className="text-cyan-600 hover:text-cyan-800 dark:text-cyan-400 dark:hover:text-cyan-300 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/30 dark:hover:bg-cyan-900/50 font-medium px-3 py-1.5 rounded-lg relative z-10 transition-colors">
-                         Edit
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <Link to={`/edit-task/${t.id}`} className="text-cyan-600 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/30 px-3 py-1.5 rounded-lg transition-colors">Edit</Link>
+                        <button onClick={() => handleDelete(t.id)} className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 px-3 py-1.5 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                      </div>
                     </td>
                   </tr>
                 ))}

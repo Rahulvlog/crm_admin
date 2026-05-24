@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, AlertCircle, RefreshCw, FileSpreadsheet, Download } from 'lucide-react';
+import { Search, Loader2, AlertCircle, RefreshCw, Download } from 'lucide-react';
 import axios from 'axios';
 
 export default function TaskReport() {
@@ -10,7 +10,7 @@ export default function TaskReport() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://127.0.0.1:8000/api/tasks-record/');
+      const res = await axios.get('/api/tasks-record/');
       setTasks(res.data.data || []);
       setError(null);
     } catch (err) {
@@ -23,6 +23,56 @@ export default function TaskReport() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleExportCSV = () => {
+    if (tasks.length === 0) {
+      alert("No data available to export.");
+      return;
+    }
+
+    const headers = [
+      "SNo.",
+      "Ref No. & DateTime",
+      "Flex ID",
+      "Project Detail",
+      "Employee_Name",
+      "Size_of_DWP",
+      "Dealer Info",
+      "Site Location",
+      "Address",
+      "Status"
+    ];
+
+    const csvRows = [];
+    csvRows.push(headers.join(","));
+
+    tasks.forEach((t, idx) => {
+      const row = [
+        idx + 1,
+        t.created_date ? new Date(t.created_date).toLocaleString('en-GB').replace(/,/g, '') : '-',
+        t.id,
+        `"${(t.project_name || '-').replace(/"/g, '""')}"`,
+        `"Employee #${t.emp_id}"`,
+        `"${(t.lex_size || '-').replace(/"/g, '""')}"`,
+        `"${(t.dealer_name || '-').replace(/"/g, '""')}"`,
+        `"${(t.site_location || '-').replace(/"/g, '""')}"`,
+        `"${(t.gps_address || '-').replace(/"/g, '""')}"`,
+        t.status == 1 ? 'Completed' : 'Pending'
+      ];
+      csvRows.push(row.join(","));
+    });
+
+    const csvData = csvRows.join("\n");
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'task_report.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   return (
     <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 max-w-full">
@@ -91,8 +141,8 @@ export default function TaskReport() {
       <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1 flex flex-col">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-indigo-600 dark:bg-slate-900">
            <h3 className="font-semibold text-white">Consolidated Analysis</h3>
-           <button className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors backdrop-blur-md border border-white/10 shadow-sm">
-              <FileSpreadsheet size={16} /> Excel Export
+           <button onClick={handleExportCSV} className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors backdrop-blur-md border border-white/10 shadow-sm">
+              <Download size={16} /> Excel Export
            </button>
         </div>
         
@@ -129,29 +179,31 @@ export default function TaskReport() {
                 </tr>
               </thead>
               <tbody>
-                {tasks.map((t, idx) => (
-                  <tr key={t.id} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">
+                {Array.isArray(tasks) && tasks.map((t, idx) => {
+                  if (!t) return null;
+                  return (
+                  <tr key={t?.id || idx} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">
                     <td className="px-5 py-3 text-sm text-slate-500">{idx + 1}</td>
                     <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">
-                       {t.created_date ? new Date(t.created_date).toLocaleString('en-GB') : '-'}
+                       {t?.created_date ? new Date(t.created_date).toLocaleString('en-GB') : '-'}
                     </td>
                     <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">Flex ID:</span> {t.id} <br/>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">Project:</span> {t.project_name}
+                        <span className="font-bold text-slate-800 dark:text-slate-200">Flex ID:</span> {t?.id} <br/>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">Project:</span> {t?.project_name}
                     </td>
-                    <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">Employee #{t.emp_id}</td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{t.lex_size || '-'}</td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{t.dealer_name || '-'}</td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{t.site_location || '-'}</td>
+                    <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">Employee #{t?.emp_id}</td>
+                    <td className="px-5 py-3 text-sm text-slate-500">{t?.lex_size || '-'}</td>
+                    <td className="px-5 py-3 text-sm text-slate-500">{t?.dealer_name || '-'}</td>
+                    <td className="px-5 py-3 text-sm text-slate-500">{t?.site_location || '-'}</td>
                     
                     <td className="px-5 py-3 text-center">
-                       {t.photo ? <img src={t.photo} alt="t" className="w-10 h-10 rounded-md object-cover shadow-sm mx-auto" /> : '-'}
+                       {t?.photo ? <img src={t.photo} alt="t" className="w-10 h-10 rounded-md object-cover shadow-sm mx-auto" /> : '-'}
                     </td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{t.view_name || '-'}</td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{t.gps_address || '-'}</td>
+                    <td className="px-5 py-3 text-sm text-slate-500">{t?.view_name || '-'}</td>
+                    <td className="px-5 py-3 text-sm text-slate-500">{t?.gps_address || '-'}</td>
 
                     <td className="px-5 py-3 text-sm font-medium text-center">
-                       {t.status == 1 ? (
+                       {t?.status == 1 ? (
                           <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-200 dark:border-emerald-500/20">Completed</span>
                        ) : (
                           <span className="text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-200 dark:border-amber-500/20">Pending</span>
@@ -165,7 +217,7 @@ export default function TaskReport() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           )}

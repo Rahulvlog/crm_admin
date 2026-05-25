@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import AppUsers
-from .serializers import AppUsersSerializer
+from .serializers import GetAppUsersSerializer
 
 
 @api_view(['POST'])
@@ -20,7 +20,7 @@ def login_api(request):
 
         if user:
 
-            serializer = AppUsersSerializer(user)
+            serializer = GetAppUsersSerializer(user)
 
             return Response({
                 # "status": 1,

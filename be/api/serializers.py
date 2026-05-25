@@ -114,6 +114,8 @@ class GetTasksRecordSerializer(serializers.ModelSerializer):
     dealer_name = serializers.SerializerMethodField()
     project_id = serializers.SerializerMethodField()
     client_id = serializers.SerializerMethodField()
+    state = serializers.SerializerMethodField()
+    city  = serializers.SerializerMethodField()
 
     class Meta:
         model = TasksRecord
@@ -145,6 +147,20 @@ class GetTasksRecordSerializer(serializers.ModelSerializer):
             client = AppUsers.objects.get(id=obj.client_id)
             return GetAppUsersSerializer(client).data
         except AppUsers.DoesNotExist:
+            return None
+
+    def get_state(self, obj):
+        try:
+            state = StateMaster.objects.get(id=obj.state)
+            return StateMasterSerializer(state).data
+        except:
+            return None
+
+    def get_city(self, obj):
+        try:
+            city = CityMaster.objects.get(id=obj.city)
+            return CityMasterSerializer(city).data
+        except:
             return None
 
 

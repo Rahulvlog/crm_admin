@@ -12,8 +12,8 @@ export default function ClientMaster() {
     setLoading(true);
     try {
       const [clientRes, cityRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/v1/clients'),
-        axios.get('http://localhost:5000/api/v1/cities')
+        axios.get('/api/v1/clients'),
+        axios.get('/api/v1/cities')
       ]);
       setClients(clientRes.data.data || []);
       setCities(cityRes.data.data || []);

@@ -10,7 +10,7 @@ export default function CityMaster() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://127.0.0.1:8000/api/city-master/');
+      const res = await axios.get('/api/city-master/');
       setCities(res.data.data || []);
       setError(null);
     } catch (err) {

@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+    font-size: 80%;
+    /* Scales down all rem units (entire UI) to be a little bit smaller */
+}
+
 body {
     margin: 0;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;

@@ -208,7 +208,15 @@ export default function TaskMaster() {
                     <td className="px-5 py-3 text-center">
                        <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 bg-transparent" />
                     </td>
-                    <td className="px-5 py-3 text-sm text-slate-500">{idx + 1}</td>
+                    <td className="px-5 py-3 text-sm font-semibold">
+                       <Link 
+                         to={`/task-report?taskId=${t.id}`} 
+                         className="text-indigo-600 hover:text-indigo-800 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
+                         title="View report for this task"
+                       >
+                         {idx + 1}
+                       </Link>
+                     </td>
                     <td className="px-5 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                       {typeof t.project_id === 'object' && t.project_id ? t.project_id.title : (projects.find(p => p.id === t.project_id)?.title || '-')}
                     </td>

@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Loader2, AlertCircle, RefreshCw, Download } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
 export default function TaskReport() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filterTaskId = searchParams.get('taskId');
+
+  const displayedTasks = filterTaskId
+    ? tasks.filter(t => {
+        const taskId = t?.task_id && typeof t.task_id === 'object' ? t.task_id.id : t?.task_id;
+        return String(taskId) === String(filterTaskId);
+      })
+    : tasks;
 
   const fetchData = async () => {
     setLoading(true);
@@ -25,7 +36,7 @@ export default function TaskReport() {
   }, []);
 
   const handleExportCSV = () => {
-    if (tasks.length === 0) {
+    if (displayedTasks.length === 0) {
       alert("No data available to export.");
       return;
     }
@@ -46,7 +57,7 @@ export default function TaskReport() {
     const csvRows = [];
     csvRows.push(headers.join(","));
 
-    tasks.forEach((t, idx) => {
+    displayedTasks.forEach((t, idx) => {
       const projName = t.task_id?.project_id?.title || t.project_id?.title || '-';
       const empName = t.task_id?.emp_id?.name || t.emp_id?.name || `Employee #${t.emp_id}`;
       const dealerName = t.task_id?.dealer_name?.name || t.dealer_name?.name || '-';
@@ -145,7 +156,21 @@ export default function TaskReport() {
 
       <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1 flex flex-col">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-indigo-600 dark:bg-slate-900">
-           <h3 className="font-semibold text-white">Consolidated Analysis</h3>
+           <div className="flex items-center gap-4">
+              <h3 className="font-semibold text-white">Consolidated Analysis</h3>
+              {filterTaskId && (
+                 <span className="bg-indigo-500 text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-2 border border-indigo-400">
+                    Filtered by Task #{filterTaskId}
+                    <button 
+                       onClick={() => setSearchParams({})} 
+                       className="hover:text-rose-200 font-bold ml-1 text-sm focus:outline-none"
+                       title="Clear filter"
+                    >
+                       ×
+                    </button>
+                 </span>
+              )}
+           </div>
            <button onClick={handleExportCSV} className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors backdrop-blur-md border border-white/10 shadow-sm">
               <Download size={16} /> Excel Export
            </button>
@@ -161,7 +186,7 @@ export default function TaskReport() {
                <AlertCircle className="mb-4" size={48} />
                <p className="text-sm font-medium text-rose-600 dark:text-rose-400 mb-2">{error}</p>
              </div>
-          ) : tasks.length === 0 ? (
+          ) : displayedTasks.length === 0 ? (
              <div className="flex flex-col items-center justify-center h-64 text-slate-400 italic text-sm">
                No records found matching filters.
              </div>
@@ -184,7 +209,7 @@ export default function TaskReport() {
                 </tr>
               </thead>
               <tbody>
-                {Array.isArray(tasks) && tasks.map((t, idx) => {
+                {Array.isArray(displayedTasks) && displayedTasks.map((t, idx) => {
                   if (!t) return null;
                   return (
                   <tr key={t?.id || idx} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">

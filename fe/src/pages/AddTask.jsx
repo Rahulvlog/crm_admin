@@ -9,7 +9,7 @@ export default function AddTask() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  
+
   const [states, setStates] = useState([]);
   const [cities, setCities] = useState([]);
   const [clients, setClients] = useState([]);
@@ -41,7 +41,7 @@ export default function AddTask() {
           axios.get('/api/project-master/'),
           axios.get('/api/app-users/')
         ]);
-        
+
         if (statesRes.status === 'fulfilled') setStates(statesRes.value.data?.data || []);
         if (citiesRes.status === 'fulfilled') setCities(citiesRes.value.data?.data || []);
         if (projectsRes.status === 'fulfilled') setProjects(projectsRes.value.data?.data || []);
@@ -59,22 +59,22 @@ export default function AddTask() {
         try {
           const res = await axios.get(`/api/tasks-record/${id}/`);
           if (res.data?.data) {
-             const d = res.data.data;
-             setFormData({
-                code: d.code || '',
-                client_id: typeof d.client_id === 'object' && d.client_id ? d.client_id.id : (d.client_id || ''),
-                project_id: typeof d.project_id === 'object' && d.project_id ? d.project_id.id : (d.project_id || ''),
-                emp_id: typeof d.emp_id === 'object' && d.emp_id ? d.emp_id.id : (d.emp_id || ''),
-                site_location: d.site_location || '',
-                state_id: typeof d.state_id === 'object' && d.state_id ? d.state_id.id : (d.state_id || ''),
-                city_id: typeof d.city_id === 'object' && d.city_id ? d.city_id.id : (d.city_id || ''),
-                location_type: d.location_type || 'Indoor',
-                dealer_name: d.dealer_name || '',
-                flex_with_amount: d.flex_with_amount || '',
-                flex_height_amount: d.flex_height_amount || '',
-                status: d.status ?? 0,
-                task_status: d.task_status ?? 1
-             });
+            const d = res.data.data;
+            setFormData({
+              code: d.code || '',
+              client_id: typeof d.client_id === 'object' && d.client_id ? d.client_id.id : (d.client_id || ''),
+              project_id: typeof d.project_id === 'object' && d.project_id ? d.project_id.id : (d.project_id || ''),
+              emp_id: typeof d.emp_id === 'object' && d.emp_id ? d.emp_id.id : (d.emp_id || ''),
+              site_location: d.site_location || '',
+              state_id: typeof d.state === 'object' && d.state ? d.state.id : (d.state || ''),
+              city_id: typeof d.city === 'object' && d.city ? d.city.id : (d.city || ''),
+              location_type: d.location_type || 'Indoor',
+              dealer_name: d.dealer_name || '',
+              flex_with_amount: d.flex_with_amount || '',
+              flex_height_amount: d.flex_height_amount || '',
+              status: d.status ?? 0,
+              task_status: d.task_status ?? 1
+            });
           }
         } catch (e) {
           console.error("Failed to fetch task details", e);
@@ -114,11 +114,12 @@ export default function AddTask() {
         console.error("Could not parse user from local storage");
       }
 
+      const { state_id, city_id, ...restFormData } = formData;
       const payload = {
-        ...formData,
-        client_id: loggedInUserId || formData.client_id, // Use logged-in user as client
-        state_id: formData.state_id || 1,
-        city_id: formData.city_id || 101
+        ...restFormData,
+        client_id: loggedInUserId || restFormData.client_id, // Use logged-in user as client
+        state: state_id || 1,
+        city: city_id || 101
       };
 
       const config = {
@@ -129,9 +130,9 @@ export default function AddTask() {
       };
 
       if (id) {
-         await axios.put(`/api/tasks-record/${id}/`, payload, config);
+        await axios.put(`/api/tasks-record/${id}/`, payload, config);
       } else {
-         await axios.post('/api/tasks-record/', payload, config);
+        await axios.post('/api/tasks-record/', payload, config);
       }
 
       setSuccess(true);
@@ -176,7 +177,7 @@ export default function AddTask() {
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-indigo-600 dark:bg-slate-900 shrink-0">
           <h3 className="font-semibold text-white">Task Details</h3>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 md:p-8 overflow-y-auto flex-1">
           {error && (
             <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-700">
@@ -213,7 +214,7 @@ export default function AddTask() {
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Task Code</label>
               <input type="text" name="code" value={formData.code} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="TSK-001" />
             </div>
-            
+
             {/* Client dropdown removed as requested; dynamically assigned in payload */}
 
             <div>
@@ -270,14 +271,14 @@ export default function AddTask() {
             </div>
 
             <div className="flex gap-4">
-               <div className="flex-1">
-                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Flex Width</label>
-                 <input type="text" name="flex_with_amount" value={formData.flex_with_amount} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="W" />
-               </div>
-               <div className="flex-1">
-                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Flex Height</label>
-                 <input type="text" name="flex_height_amount" value={formData.flex_height_amount} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="H" />
-               </div>
+              <div className="flex-1">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Flex Width</label>
+                <input type="text" name="flex_with_amount" value={formData.flex_with_amount} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="W" />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Flex Height</label>
+                <input type="text" name="flex_height_amount" value={formData.flex_height_amount} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="H" />
+              </div>
             </div>
 
             <div>
@@ -287,7 +288,7 @@ export default function AddTask() {
                 <option value="0">Inactive</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Progress Status</label>
               <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all">

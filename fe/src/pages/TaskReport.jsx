@@ -3,6 +3,31 @@ import { Search, Loader2, AlertCircle, RefreshCw, Download } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
+const getImageUrl = (photoUrl) => {
+  if (!photoUrl) return '';
+  
+  let cleanUrl = photoUrl.trim();
+  
+  // Strip brackets that might be present due to split-fallback serializer issues
+  if (cleanUrl.startsWith('[')) {
+    cleanUrl = cleanUrl.substring(1).trim();
+  }
+  if (cleanUrl.endsWith(']')) {
+    cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1).trim();
+  }
+  // Strip quotes if they were somehow included inside the string
+  cleanUrl = cleanUrl.replace(/^['"]|['"]$/g, '').trim();
+
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+    return cleanUrl;
+  }
+  
+  if (cleanUrl.startsWith('/')) {
+    return `http://72.61.229.236${cleanUrl}`;
+  }
+  return `http://72.61.229.236/${cleanUrl}`;
+};
+
 export default function TaskReport() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -227,7 +252,20 @@ export default function TaskReport() {
                     <td className="px-5 py-3 text-sm text-slate-500">{t?.task_id?.site_location || t?.site_location || '-'}</td>
                     
                     <td className="px-5 py-3 text-center">
-                       {t?.photo && t.photo.length > 0 ? <img src={t.photo[0]} alt="t" className="w-10 h-10 rounded-md object-cover shadow-sm mx-auto" /> : '-'}
+                       {t?.photo && t.photo.length > 0 ? (
+                          <a 
+                             href={getImageUrl(t.photo[0])} 
+                             target="_blank" 
+                             rel="noopener noreferrer" 
+                             className="inline-block group/img overflow-hidden rounded-md w-10 h-10 shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in duration-300"
+                          >
+                             <img 
+                                src={getImageUrl(t.photo[0])} 
+                                alt="Activity thumbnail" 
+                                className="w-full h-full object-cover group-hover/img:scale-115 transition-transform duration-300 cursor-zoom-in" 
+                             />
+                          </a>
+                       ) : '-'}
                     </td>
                     <td className="px-5 py-3 text-sm text-slate-500">{t?.view_id || '-'}</td>
                     <td className="px-5 py-3 text-sm text-slate-500">{t?.gps_address || '-'}</td>

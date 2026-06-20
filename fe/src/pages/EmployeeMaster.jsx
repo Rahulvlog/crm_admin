@@ -68,10 +68,10 @@ export default function EmployeeMaster() {
   });
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 max-w-full">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4 relative">
+    <div className="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 max-w-full">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4 relative">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Employee Master</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-1">Employee Master</h1>
           <ol className="flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400">
             <li><a href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Home</a></li>
             <li>/</li>
@@ -81,11 +81,11 @@ export default function EmployeeMaster() {
       </div>
 
       {/* Filters Card -> Exact reproduction of PHP Search Online Status */}
-      <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6 flex flex-col">
+      <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm mb-4 flex flex-col">
         <div className="bg-indigo-600 dark:bg-slate-900 p-3 rounded-t-3xl border-b border-indigo-700 dark:border-slate-800 text-white font-semibold">
           Search Online Status
         </div>
-        <div className="p-5 flex items-end gap-4">
+        <div className="p-4 flex items-end gap-4">
           <div className="w-64">
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Online Status</label>
             <select value={onlineStatus} onChange={(e) => setOnlineStatus(e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-colors text-slate-700 dark:text-slate-200 cursor-pointer">
@@ -101,7 +101,7 @@ export default function EmployeeMaster() {
         </div>
       </div>
 
-      <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1 flex flex-col">
+      <div className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-indigo-600 dark:bg-slate-900">
           <h3 className="font-semibold text-white">Employee Master List</h3>
           <Link to="/add-user" className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors backdrop-blur-md border border-white/10 shadow-sm">
@@ -109,7 +109,7 @@ export default function EmployeeMaster() {
           </Link>
         </div>
 
-        <div className="flex-1 overflow-auto">
+        <div className="overflow-x-auto w-full">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-64 text-indigo-500">
               <Loader2 className="animate-spin mb-4" size={32} />

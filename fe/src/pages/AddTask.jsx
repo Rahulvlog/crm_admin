@@ -24,6 +24,7 @@ export default function AddTask() {
     site_location: '',
     state_id: '',
     city_id: '',
+    replace_location: '',
     location_type: 'Indoor',
     dealer_name: '',
     flex_with_amount: '',
@@ -68,6 +69,7 @@ export default function AddTask() {
               site_location: d.site_location || '',
               state_id: typeof d.state === 'object' && d.state ? d.state.id : (d.state || ''),
               city_id: typeof d.city === 'object' && d.city ? d.city.id : (d.city || ''),
+              replace_location: d.replace_location || '',
               location_type: d.location_type || 'Indoor',
               dealer_name: d.dealer_name || '',
               flex_with_amount: d.flex_with_amount || '',
@@ -121,6 +123,10 @@ export default function AddTask() {
         state: state_id || 1,
         city: city_id || 101
       };
+
+      if (!id) {
+        delete payload.replace_location;
+      }
 
       const config = {
         headers: {
@@ -245,6 +251,13 @@ export default function AddTask() {
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Site Location (Area)</label>
               <input type="text" name="site_location" value={formData.site_location} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="Enter site area" />
             </div>
+
+            {id && (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Replace Location (Address)</label>
+                <input type="text" name="replace_location" value={formData.replace_location} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="Enter replace location address" />
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">State</label>

@@ -128,7 +128,7 @@ class ActivityRecord(models.Model):
     gps_address = models.CharField(max_length=1000, default='')
     remark = models.CharField(max_length=1000, default='')
     remark1 = models.TextField(null=True, blank=True)
-    delear_info = models.TextField(null=True, blank=True)
+    dealer_info = models.TextField(null=True, blank=True)
     view_id = models.IntegerField(default=0)
     distance_from_last = models.CharField(max_length=200, null=True, blank=True)
     status = models.IntegerField(default=0)

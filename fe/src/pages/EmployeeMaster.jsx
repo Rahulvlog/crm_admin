@@ -134,6 +134,8 @@ export default function EmployeeMaster() {
                   <th className="px-5 py-4">Password</th>
                   <th className="px-5 py-4">City</th>
                   <th className="px-5 py-4">Address</th>
+                  <th className="px-5 py-4">Latitude</th>
+                  <th className="px-5 py-4">Longitude</th>
                   <th className="px-5 py-4">Role Type</th>
                   <th className="px-5 py-4 text-center">Created Date</th>
                   <th className="px-5 py-4 text-center">Status</th>
@@ -153,6 +155,8 @@ export default function EmployeeMaster() {
                     <td className="px-5 py-3 text-sm font-medium text-slate-400 dark:text-slate-500">{e.password || '-'}</td>
                     <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">{getCityName(e.city)}</td>
                     <td className="px-5 py-3 text-sm text-slate-500 max-w-[150px] truncate" title={e.address}>{e.address || '-'}</td>
+                    <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">{e.latitude || '-'}</td>
+                    <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">{e.longitude || '-'}</td>
                     <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-300">{getRole(e.role_type)}</td>
                     <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300 text-center">
                       {e.created_date ? new Date(e.created_date).toLocaleDateString('en-GB') : '-'}

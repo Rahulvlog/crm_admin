@@ -22,12 +22,14 @@ export default function AddUser() {
     address: '',
     profile_image: 'profile.jpg',
     password: '',
-    role_type: 1,
+    role_type: 'Manager',
     joining_date: new Date().toISOString().split('T')[0],
     online_status: 1,
     working_hrs: '09:00:00',
     is_overtime_allowed: 1,
-    status: 1
+    status: 1,
+    latitude: '',
+    longitude: ''
   });
 
   useEffect(() => {
@@ -63,12 +65,14 @@ export default function AddUser() {
                 address: d.address || '',
                 profile_image: d.profile_image || 'profile.jpg',
                 password: d.password || '',
-                role_type: d.role_type || 1,
+                role_type: d.role_type || 'Manager',
                 joining_date: d.joining_date ? d.joining_date.split('T')[0] : new Date().toISOString().split('T')[0],
                 online_status: d.online_status ?? 1,
                 working_hrs: d.working_hrs || '09:00:00',
                 is_overtime_allowed: d.is_overtime_allowed ?? 1,
-                status: d.status ?? 1
+                status: d.status ?? 1,
+                latitude: d.latitude || '',
+                longitude: d.longitude || ''
              });
           }
         } catch (e) {
@@ -76,6 +80,23 @@ export default function AddUser() {
         }
       };
       fetchUser();
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (!id && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormData((prev) => ({
+            ...prev,
+            latitude: position.coords.latitude.toString(),
+            longitude: position.coords.longitude.toString()
+          }));
+        },
+        (error) => {
+          console.warn("Error getting geolocation:", error);
+        }
+      );
     }
   }, [id]);
 
@@ -112,10 +133,17 @@ export default function AddUser() {
         }
       };
 
+      let res;
       if (id) {
-         await axios.put(`/api/app-users/${id}/`, payload, config);
+         res = await axios.put(`/api/app-users/${id}/`, payload, config);
       } else {
-         await axios.post('/api/app-users/', payload, config);
+         res = await axios.post('/api/app-users/', payload, config);
+      }
+
+      if (res.data && res.data.status === false) {
+        setError(res.data.errors || res.data.message || res.data);
+        setLoading(false);
+        return;
       }
       
       setSuccess(true);
@@ -128,7 +156,8 @@ export default function AddUser() {
       if (err.response?.data) {
         if (err.response.data.errors) errMsg = err.response.data.errors;
         else if (err.response.data.message) errMsg = err.response.data.message;
-        else errMsg = "An unknown error occurred on the server.";
+        else if (typeof err.response.data === 'object') errMsg = err.response.data;
+        else errMsg = String(err.response.data);
       } else if (err.message) {
         errMsg = err.message;
       }
@@ -163,21 +192,36 @@ export default function AddUser() {
         
         <form onSubmit={handleSubmit} className="p-6 md:p-8 overflow-y-auto flex-1">
           {error && (
-            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-700">
-              <AlertCircle size={20} className="mt-0.5 shrink-0" />
-              <div>
-                <h4 className="font-semibold text-sm">Error saving user</h4>
-                {typeof error === 'string' ? (
-                  <p className="text-sm mt-1">{error}</p>
-                ) : (
-                  <ul className="text-sm mt-2 space-y-1 list-disc list-inside">
-                    {Object.entries(error).map(([field, msgs]) => (
-                      <li key={field}>
-                        <span className="font-semibold capitalize">{field.replace('_', ' ')}</span>: {Array.isArray(msgs) ? msgs.join(', ') : msgs}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-6">
+                  <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 flex items-center justify-center mb-4 mx-auto">
+                    <AlertCircle size={24} />
+                  </div>
+                  <h3 className="text-xl font-bold text-center text-slate-900 dark:text-white mb-2">Error Saving User</h3>
+                  <div className="text-sm text-slate-600 dark:text-slate-300 text-center space-y-2">
+                    {typeof error === 'string' ? (
+                      <p>{error}</p>
+                    ) : (
+                      <ul className="text-left bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 space-y-1 list-disc list-inside mt-4 inline-block mx-auto w-full max-h-48 overflow-y-auto">
+                        {Object.entries(error).map(([field, msgs]) => (
+                          <li key={field}>
+                            <span className="font-semibold capitalize">{field.replace('_', ' ')}</span>: {Array.isArray(msgs) ? msgs.join(', ') : (typeof msgs === 'string' ? msgs : JSON.stringify(msgs))}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="mt-6 flex justify-center">
+                    <button 
+                      type="button"
+                      onClick={() => setError(null)} 
+                      className="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -221,9 +265,10 @@ export default function AddUser() {
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Role Type</label>
               <select name="role_type" value={formData.role_type} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all">
-                <option value={1}>Admin</option>
-                <option value={2}>User</option>
-                <option value={3}>Staff</option>
+                <option value="Manager">Manager</option>
+                <option value="Dealer">Dealer</option>
+                <option value="User">User</option>
+                <option value="Staff">Staff</option>
               </select>
             </div>
 
@@ -259,6 +304,16 @@ export default function AddUser() {
                 <option value="">-Select City-</option>
                 {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Latitude</label>
+              <input type="text" name="latitude" value={formData.latitude} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="e.g. 28.7041" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Longitude</label>
+              <input type="text" name="longitude" value={formData.longitude} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="e.g. 77.1025" />
             </div>
 
             <div>

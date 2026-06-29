@@ -2,30 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { Search, Loader2, AlertCircle, RefreshCw, Download, X, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { jsPDF } from 'jspdf';
+import pptxgen from 'pptxgenjs';
+import html2canvas from 'html2canvas';
+import ExportTaskTemplate from '../components/ExportTaskTemplate';
 
-const getImageUrl = (photoUrl) => {
+const getImageUrl = (photoUrl, forceCors = false) => {
   if (!photoUrl) return '';
   
   let cleanUrl = photoUrl.trim();
   
-  // Strip brackets that might be present due to split-fallback serializer issues
-  if (cleanUrl.startsWith('[')) {
-    cleanUrl = cleanUrl.substring(1).trim();
-  }
-  if (cleanUrl.endsWith(']')) {
-    cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1).trim();
-  }
-  // Strip quotes if they were somehow included inside the string
+  if (cleanUrl.startsWith('[')) cleanUrl = cleanUrl.substring(1).trim();
+  if (cleanUrl.endsWith(']')) cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1).trim();
   cleanUrl = cleanUrl.replace(/^['"]|['"]$/g, '').trim();
 
-  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
-    return cleanUrl;
+  if (cleanUrl.includes('http://72.61.229.236')) {
+    cleanUrl = cleanUrl.split('http://72.61.229.236')[1];
   }
-  
-  if (cleanUrl.startsWith('/')) {
-    return `http://72.61.229.236${cleanUrl}`;
+  if (cleanUrl.startsWith('/')) cleanUrl = cleanUrl.substring(1);
+  if (cleanUrl.startsWith('https://')) return cleanUrl;
+
+  if (import.meta.env.DEV && !forceCors) {
+    return `http://72.61.229.236/${cleanUrl}`;
+  } else {
+    return `https://images.weserv.nl/?url=72.61.229.236/${cleanUrl}`;
   }
-  return `http://72.61.229.236/${cleanUrl}`;
 };
 
 export default function TaskReport() {
@@ -36,12 +37,89 @@ export default function TaskReport() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filterTaskId = searchParams.get('taskId');
 
-  const displayedTasks = filterTaskId
-    ? tasks.filter(t => {
-        const taskId = t?.task_id && typeof t.task_id === 'object' ? t.task_id.id : t?.task_id;
-        return String(taskId) === String(filterTaskId);
-      })
-    : tasks;
+  const [filters, setFilters] = useState({
+    project_name: '', client_name: '', employee_name: '', state_name: '',
+    district_name: '', tehsil_name: '', site_location: '', dealer_name: '',
+    from_date: '', to_date: ''
+  });
+  
+  const [appliedFilters, setAppliedFilters] = useState({
+    project_name: '', client_name: '', employee_name: '', state_name: '',
+    district_name: '', tehsil_name: '', site_location: '', dealer_name: '',
+    from_date: '', to_date: ''
+  });
+
+  const handleFilterChange = (e) => setFilters({ ...filters, [e.target.name]: e.target.value });
+  const handleSearch = () => setAppliedFilters(filters);
+  const handleReset = () => {
+    const emptyFilters = {
+      project_name: '', client_name: '', employee_name: '', state_name: '',
+      district_name: '', tehsil_name: '', site_location: '', dealer_name: '',
+      from_date: '', to_date: ''
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setSearchParams({});
+  };
+
+  const displayedTasks = tasks.filter(t => {
+    if (filterTaskId) {
+      const taskId = t?.task_id && typeof t.task_id === 'object' ? t.task_id.id : t?.task_id;
+      if (String(taskId) !== String(filterTaskId)) return false;
+    }
+    
+    if (appliedFilters.project_name) {
+      const p = t.task_id?.project_id?.title || t.project_id?.title || '';
+      if (p !== appliedFilters.project_name) return false;
+    }
+    if (appliedFilters.client_name) {
+      const c = t.task_id?.client_id?.name || t.client_id?.name || '';
+      if (c !== appliedFilters.client_name) return false;
+    }
+    if (appliedFilters.employee_name) {
+      const e = t.task_id?.emp_id?.name || t.emp_id?.name || '';
+      if (e !== appliedFilters.employee_name) return false;
+    }
+    if (appliedFilters.state_name) {
+      const s = t.task_id?.state?.name || t.state?.name || '';
+      if (s !== appliedFilters.state_name) return false;
+    }
+    if (appliedFilters.district_name) {
+      const d = t.task_id?.district?.name || t.district?.name || '';
+      if (d !== appliedFilters.district_name) return false;
+    }
+    if (appliedFilters.tehsil_name) {
+      const th = t.task_id?.tehsil?.name || t.tehsil?.name || '';
+      if (th !== appliedFilters.tehsil_name) return false;
+    }
+    if (appliedFilters.site_location) {
+      const loc = t.task_id?.site_location || t.site_location || '';
+      if (!loc.toLowerCase().includes(appliedFilters.site_location.toLowerCase())) return false;
+    }
+    if (appliedFilters.dealer_name) {
+      const dealer = t.task_id?.dealer_name?.name || t.dealer_name?.name || '';
+      if (!dealer.toLowerCase().includes(appliedFilters.dealer_name.toLowerCase())) return false;
+    }
+    if (appliedFilters.from_date || appliedFilters.to_date) {
+      const taskDate = t.created_date ? new Date(t.created_date) : null;
+      if (!taskDate) return false;
+      if (appliedFilters.from_date && taskDate < new Date(appliedFilters.from_date)) return false;
+      if (appliedFilters.to_date) {
+        const to = new Date(appliedFilters.to_date);
+        to.setHours(23, 59, 59, 999);
+        if (taskDate > to) return false;
+      }
+    }
+    
+    return true;
+  });
+
+  const uniqueProjects = [...new Set(tasks.map(t => t.task_id?.project_id?.title || t.project_id?.title).filter(Boolean))];
+  const uniqueClients = [...new Set(tasks.map(t => t.task_id?.client_id?.name || t.client_id?.name).filter(Boolean))];
+  const uniqueEmployees = [...new Set(tasks.map(t => t.task_id?.emp_id?.name || t.emp_id?.name).filter(Boolean))];
+  const uniqueStates = [...new Set(tasks.map(t => t.task_id?.state?.name || t.state?.name).filter(Boolean))];
+  const uniqueDistricts = [...new Set(tasks.map(t => t.task_id?.district?.name || t.district?.name).filter(Boolean))];
+  const uniqueTehsils = [...new Set(tasks.map(t => t.task_id?.tehsil?.name || t.tehsil?.name).filter(Boolean))];
 
   const fetchData = async () => {
     setLoading(true);
@@ -61,30 +139,10 @@ export default function TaskReport() {
   }, []);
 
   const [lightbox, setLightbox] = useState({ isOpen: false, photos: [], currentIndex: 0, address: '' });
-
-  const openLightbox = (photos, index = 0, address = '') => {
-    if (!photos || photos.length === 0) return;
-    setLightbox({ isOpen: true, photos: photos.map(p => getImageUrl(p)), currentIndex: index, address });
-  };
-
-  const closeLightbox = () => {
-    setLightbox({ ...lightbox, isOpen: false });
-  };
-
-  const nextPhoto = () => {
-    setLightbox(prev => ({
-      ...prev,
-      currentIndex: (prev.currentIndex + 1) % prev.photos.length
-    }));
-  };
-
-  const prevPhoto = () => {
-    setLightbox(prev => ({
-      ...prev,
-      currentIndex: (prev.currentIndex - 1 + prev.photos.length) % prev.photos.length
-    }));
-  };
-
+  const [galleryModal, setGalleryModal] = useState({ isOpen: false, task: null });
+  const exportTemplateRef = React.useRef(null);
+  const [exportType, setExportType] = useState(null); // 'pdf' | 'ppt' | null
+  
   // Grouping logic
   const groupedTasks = [];
   const groupMap = new Map();
@@ -118,6 +176,65 @@ export default function TaskReport() {
       groupedTasks.push(newEntry);
     }
   });
+
+  const handleExportReady = async () => {
+    if (!exportTemplateRef.current || !exportType) return;
+    
+    try {
+      const pages = exportTemplateRef.current.querySelectorAll('.export-page');
+      
+      if (exportType === 'pdf') {
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [900, 1200] });
+        for (let i = 0; i < pages.length; i++) {
+          const canvas = await html2canvas(pages[i], { scale: 1.5, useCORS: true, allowTaint: true });
+          const imgData = canvas.toDataURL('image/jpeg', 0.9);
+          if (i > 0) pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', 0, 0, 900, 1200);
+        }
+        pdf.save('Consolidated_Task_Report.pdf');
+      } 
+      else if (exportType === 'ppt') {
+        const pptx = new pptxgen();
+        pptx.layout = 'LAYOUT_4x3'; 
+        for (let i = 0; i < pages.length; i++) {
+          const canvas = await html2canvas(pages[i], { scale: 1.5, useCORS: true, allowTaint: true });
+          const imgData = canvas.toDataURL('image/jpeg', 0.9);
+          const slide = pptx.addSlide();
+          slide.addImage({ data: imgData, x: 2.18, y: 0, w: 5.625, h: 7.5 }); 
+        }
+        await pptx.writeFile({ fileName: 'Consolidated_Task_Report.pptx' });
+      }
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to export. Please try again.");
+    } finally {
+      setExportType(null);
+    }
+  };
+
+  const openLightbox = (photos, index = 0, task = null) => {
+    if (!photos || photos.length === 0) return;
+    setLightbox({ isOpen: true, photos: photos.map(p => getImageUrl(p)), currentIndex: index, task });
+  };
+
+  const closeLightbox = () => {
+    setLightbox({ ...lightbox, isOpen: false });
+  };
+
+  const nextPhoto = () => {
+    setLightbox(prev => ({
+      ...prev,
+      currentIndex: (prev.currentIndex + 1) % prev.photos.length
+    }));
+  };
+
+  const prevPhoto = () => {
+    setLightbox(prev => ({
+      ...prev,
+      currentIndex: (prev.currentIndex - 1 + prev.photos.length) % prev.photos.length
+    }));
+  };
+
 
   const handleExportCSV = () => {
     if (displayedTasks.length === 0) {
@@ -192,48 +309,66 @@ export default function TaskReport() {
          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Project Name</label>
-              <select className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500"><option>--select--</option></select>
+              <select name="project_name" value={filters.project_name} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-700 dark:text-slate-200">
+                <option value="">--select--</option>
+                {uniqueProjects.map((p, i) => <option key={i} value={p}>{p}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Client Name</label>
-              <select className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500"><option>--select--</option></select>
+              <select name="client_name" value={filters.client_name} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-700 dark:text-slate-200">
+                <option value="">--select--</option>
+                {uniqueClients.map((c, i) => <option key={i} value={c}>{c}</option>)}
+              </select>
             </div>
             <div>
                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Employee Name</label>
-               <select className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500"><option>--select--</option></select>
+               <select name="employee_name" value={filters.employee_name} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-700 dark:text-slate-200">
+                <option value="">--select--</option>
+                {uniqueEmployees.map((e, i) => <option key={i} value={e}>{e}</option>)}
+               </select>
             </div>
             <div>
                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">State</label>
-               <select className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500"><option>--select--</option></select>
+               <select name="state_name" value={filters.state_name} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-700 dark:text-slate-200">
+                <option value="">--select--</option>
+                {uniqueStates.map((s, i) => <option key={i} value={s}>{s}</option>)}
+               </select>
             </div>
              <div>
                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">District</label>
-               <select className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500"><option>--select--</option></select>
+               <select name="district_name" value={filters.district_name} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-700 dark:text-slate-200">
+                <option value="">--select--</option>
+                {uniqueDistricts.map((d, i) => <option key={i} value={d}>{d}</option>)}
+               </select>
             </div>
              <div>
                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Tehsil</label>
-               <select className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500"><option>--select--</option></select>
+               <select name="tehsil_name" value={filters.tehsil_name} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-700 dark:text-slate-200">
+                <option value="">--select--</option>
+                {uniqueTehsils.map((t, i) => <option key={i} value={t}>{t}</option>)}
+               </select>
             </div>
             <div>
                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Site Location</label>
-               <input type="text" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500" />
+               <input type="text" name="site_location" value={filters.site_location} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-700 dark:text-slate-200" />
             </div>
             <div>
                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Dealer Name</label>
-               <input type="text" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500" />
+               <input type="text" name="dealer_name" value={filters.dealer_name} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-700 dark:text-slate-200" />
             </div>
              <div>
                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">From Date</label>
-               <input type="date" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500" />
+               <input type="date" name="from_date" value={filters.from_date} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-700 dark:text-slate-200" />
             </div>
              <div>
                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">To Date</label>
-               <input type="date" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500" />
+               <input type="date" name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-700 dark:text-slate-200" />
             </div>
             
             <div className="flex items-end justify-start lg:col-span-2 mt-2 gap-2">
-               <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-colors cursor-pointer flex items-center gap-2"><Search size={14}/> Search</button>
-               <button className="bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer flex items-center gap-2"><RefreshCw size={14} /> Reset</button>
+               <button onClick={handleSearch} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-colors cursor-pointer flex items-center gap-2"><Search size={14}/> Search</button>
+               <button onClick={handleReset} className="bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer flex items-center gap-2"><RefreshCw size={14} /> Reset</button>
             </div>
          </div>
       </div>
@@ -255,9 +390,27 @@ export default function TaskReport() {
                  </span>
               )}
            </div>
-           <button onClick={handleExportCSV} className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-colors backdrop-blur-md border border-white/10 shadow-sm">
-              <Download size={16} /> Excel Export
-           </button>
+           <div className="flex items-center gap-2">
+             <button 
+               onClick={() => setExportType('ppt')} 
+               disabled={exportType !== null}
+               className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2 border border-white/10 shadow-sm"
+             >
+               {exportType === 'ppt' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+               {exportType === 'ppt' ? 'Generating...' : 'PPT'}
+             </button>
+             <button 
+               onClick={() => setExportType('pdf')} 
+               disabled={exportType !== null}
+               className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2 border border-white/10 shadow-sm"
+             >
+               {exportType === 'pdf' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+               {exportType === 'pdf' ? 'Generating...' : 'PDF'}
+             </button>
+             <button onClick={handleExportCSV} className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg flex items-center gap-2 text-xs font-semibold transition-colors backdrop-blur-md border border-white/10 shadow-sm">
+                <Download size={14} /> Excel
+             </button>
+           </div>
         </div>
         
         <div className="overflow-x-auto w-full">
@@ -295,7 +448,7 @@ export default function TaskReport() {
               <tbody>
                 {groupedTasks.map((t, idx) => {
                   return (
-                  <tr key={t?.id || idx} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">
+                  <tr key={t?.id || idx} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors group cursor-pointer" onClick={() => { if (t.all_photos && t.all_photos.length > 0) setGalleryModal({isOpen: true, task: t}) }}>
                     <td className="px-5 py-3 text-sm text-slate-500">{idx + 1}</td>
                     <td className="px-5 py-3 text-sm font-medium text-slate-600 dark:text-slate-300">
                        {t?.created_date ? new Date(t.created_date).toLocaleString('en-GB') : '-'}
@@ -311,17 +464,10 @@ export default function TaskReport() {
                     
                     <td className="px-5 py-3 text-center">
                        {t.all_photos && t.all_photos.length > 0 ? (
-                          <div 
-                             onClick={() => openLightbox(t.all_photos, 0, t.gps_address)}
-                             className="inline-flex items-center justify-center cursor-pointer group/img overflow-hidden rounded-md w-10 h-10 shadow-sm hover:shadow-md transition-all duration-300 relative bg-slate-100"
-                          >
-                             <img 
-                                src={getImageUrl(t.all_photos[0])} 
-                                alt="Activity thumbnail" 
-                                className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-300" 
-                             />
+                          <div className="inline-flex items-center justify-center rounded-md w-10 h-10 shadow-sm bg-slate-100 dark:bg-slate-800 relative">
+                             <img src={getImageUrl(t.all_photos[0])} alt="Thumbnail" className="w-full h-full object-cover rounded-md" />
                              {t.all_photos.length > 1 && (
-                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold">
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold rounded-md backdrop-blur-[1px]">
                                   +{t.all_photos.length - 1}
                                 </div>
                              )}
@@ -339,7 +485,7 @@ export default function TaskReport() {
                        )}
                     </td>
 
-                    <td className="px-5 py-3 text-sm text-center sticky right-0 bg-white/50 dark:bg-slate-950/50 group-hover:bg-slate-50/50 dark:group-hover:bg-slate-800/20 backdrop-blur-sm transition-colors">
+                    <td className="px-5 py-3 text-sm text-center sticky right-0 bg-white/50 dark:bg-slate-950/50 group-hover:bg-slate-50/50 dark:group-hover:bg-slate-800/20 backdrop-blur-sm transition-colors" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-col items-center justify-center gap-1">
                         <button className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Delete</button>
                         <button className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Remark</button>
@@ -353,40 +499,117 @@ export default function TaskReport() {
         </div>
       </div>
 
+      {/* Gallery Modal */}
+      {galleryModal.isOpen && galleryModal.task && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setGalleryModal({isOpen: false, task: null})}>
+           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+              <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30 flex-wrap gap-4">
+                 <h3 className="font-bold text-lg text-slate-800 dark:text-white flex items-center gap-3">
+                    Photos for Task #{galleryModal.task.flex_id || galleryModal.task.id}
+                    <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-indigo-200 dark:border-indigo-500/30">
+                       {galleryModal.task.all_photos.length} Photos
+                    </span>
+                 </h3>
+                 <button onClick={() => setGalleryModal({isOpen: false, task: null})} className="text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors p-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm ml-2">
+                   <X size={20} />
+                 </button>
+              </div>
+              <div className="p-6 overflow-y-auto bg-slate-50/30 dark:bg-slate-950/30">
+                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-5">
+                    {galleryModal.task.all_photos.map((photo, idx) => (
+                       <div 
+                          key={idx}
+                          onClick={() => openLightbox(galleryModal.task.all_photos, idx, galleryModal.task)}
+                          className="aspect-square rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-lg hover:ring-4 hover:ring-indigo-500/30 transition-all group relative bg-slate-100 dark:bg-slate-800"
+                       >
+                          <img src={getImageUrl(photo)} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                       </div>
+                    ))}
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
       {/* Lightbox */}
       {lightbox.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm">
-          <button onClick={closeLightbox} className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors z-50">
-            <X size={32} />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 text-white/90 text-sm font-semibold bg-white/10 px-5 py-2 rounded-full backdrop-blur-md shadow-lg border border-white/10 z-50">
+            {lightbox.currentIndex + 1} of {lightbox.photos.length}
+          </div>
+          <button onClick={closeLightbox} className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors z-50 bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-sm border border-white/10">
+            <X size={28} />
           </button>
           
-          <div className="relative w-full max-w-4xl max-h-screen flex items-center justify-center p-4">
-             <img src={lightbox.photos[lightbox.currentIndex]} className="max-w-full max-h-[85vh] object-contain shadow-2xl rounded-sm" alt="Preview" />
+          <div className="relative w-full max-w-5xl h-full max-h-screen flex items-center justify-center p-4">
              
              {lightbox.photos.length > 1 && (
                <>
-                 <button onClick={prevPhoto} className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-3 rounded-full transition-colors">
-                   <ChevronLeft size={24} />
+                 <button onClick={(e) => { e.stopPropagation(); prevPhoto(); }} className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-3 rounded-full transition-colors backdrop-blur-sm border border-white/10 hover:scale-110 active:scale-95 z-50">
+                   <ChevronLeft size={28} />
                  </button>
-                 <button onClick={nextPhoto} className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-3 rounded-full transition-colors">
-                   <ChevronRight size={24} />
+                 <button onClick={(e) => { e.stopPropagation(); nextPhoto(); }} className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-3 rounded-full transition-colors backdrop-blur-sm border border-white/10 hover:scale-110 active:scale-95 z-50">
+                   <ChevronRight size={28} />
                  </button>
                </>
              )}
-             
-             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 w-full px-4">
-               {lightbox.address && lightbox.address !== '-' && (
-                 <div className="flex items-center gap-1.5 text-white bg-black/60 px-4 py-2 rounded-xl backdrop-blur-md text-sm font-medium shadow-lg max-w-[90vw] md:max-w-[60vw]">
-                   <MapPin size={16} className="text-rose-400 shrink-0" />
-                   <span className="truncate">{lightbox.address}</span>
+
+             <div className="relative inline-block max-w-full rounded-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+               <img src={lightbox.photos[lightbox.currentIndex]} className="w-auto h-auto max-w-full max-h-[85vh] block" alt="Preview" />
+               
+               {lightbox.task && (
+                 <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-md p-3 sm:p-4 flex gap-4 text-white items-center border-t border-white/10">
+                   {(lightbox.task.latitude || lightbox.task.task_id?.latitude) && (lightbox.task.longitude || lightbox.task.task_id?.longitude) && (
+                      <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded bg-slate-800 overflow-hidden pointer-events-none shadow-inner border border-white/20">
+                        <iframe 
+                           src={`https://maps.google.com/maps?q=${lightbox.task.latitude || lightbox.task.task_id?.latitude},${lightbox.task.longitude || lightbox.task.task_id?.longitude}&z=14&output=embed`} 
+                           width="100%" 
+                           height="100%" 
+                           className="border-0 scale-125 origin-center" 
+                           loading="lazy" 
+                        ></iframe>
+                      </div>
+                   )}
+                   <div className="flex flex-col justify-center overflow-hidden w-full">
+                     {lightbox.task.gps_address && lightbox.task.gps_address !== '-' && (
+                       <div className="truncate font-semibold mb-1 pb-1 border-b border-white/20 text-white text-xs sm:text-sm">
+                         {lightbox.task.gps_address}
+                       </div>
+                     )}
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 font-mono text-[10px] sm:text-[11px] mt-1">
+                       {(lightbox.task.latitude || lightbox.task.task_id?.latitude) && (
+                         <div className="truncate">
+                           <span className="text-white/50 mr-1">Lat:</span> {lightbox.task.latitude || lightbox.task.task_id?.latitude}
+                         </div>
+                       )}
+                       {(lightbox.task.longitude || lightbox.task.task_id?.longitude) && (
+                         <div className="truncate">
+                           <span className="text-white/50 mr-1">Long:</span> {lightbox.task.longitude || lightbox.task.task_id?.longitude}
+                         </div>
+                       )}
+                       {lightbox.task.created_date && (
+                         <div className="col-span-1 sm:col-span-2 truncate">
+                           <span className="text-white/50 mr-1">Date:</span> {new Date(lightbox.task.created_date).toLocaleString('en-GB')}
+                         </div>
+                       )}
+                     </div>
+                   </div>
                  </div>
                )}
-               <div className="text-white/80 text-sm font-medium bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-md shadow-lg">
-                 {lightbox.currentIndex + 1} / {lightbox.photos.length}
-               </div>
              </div>
           </div>
         </div>
+      )}
+
+      {/* Hidden element for Export Generation */}
+      {exportType && groupedTasks.length > 0 && (
+        <ExportTaskTemplate 
+          ref={exportTemplateRef} 
+          tasks={groupedTasks} 
+          getImageUrl={getImageUrl} 
+          onReady={handleExportReady}
+        />
       )}
     </div>
   );

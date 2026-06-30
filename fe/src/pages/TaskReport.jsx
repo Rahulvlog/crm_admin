@@ -140,8 +140,43 @@ export default function TaskReport() {
 
   const [lightbox, setLightbox] = useState({ isOpen: false, photos: [], currentIndex: 0, address: '' });
   const [galleryModal, setGalleryModal] = useState({ isOpen: false, task: null });
+  const [remarkModal, setRemarkModal] = useState({ isOpen: false, task: null, remark: '' });
   const exportTemplateRef = React.useRef(null);
   const [exportType, setExportType] = useState(null); // 'pdf' | 'ppt' | null
+  
+  const handleApprove = async (task) => {
+    if (!window.confirm('Are you sure you want to approve this task?')) return;
+    try {
+      const res = await axios.put(`/api/activity-record/${task.id}/`, { status: 1 });
+      if (res.data.status) {
+        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 1 } : t));
+      } else {
+        alert('Failed to approve task.');
+      }
+    } catch (err) {
+      alert('Failed to approve task.');
+    }
+  };
+
+  const openRemarkModal = (task, e) => {
+    e.stopPropagation();
+    setRemarkModal({ isOpen: true, task, remark: task.remark_1 || '' });
+  };
+
+  const submitRemark = async () => {
+    if (!remarkModal.task) return;
+    try {
+      const res = await axios.put(`/api/activity-record/${remarkModal.task.id}/`, { remark_1: remarkModal.remark });
+      if (res.data.status) {
+        setTasks(prev => prev.map(t => t.id === remarkModal.task.id ? { ...t, remark_1: remarkModal.remark } : t));
+        setRemarkModal({ isOpen: false, task: null, remark: '' });
+      } else {
+        alert('Failed to update remark.');
+      }
+    } catch (err) {
+      alert('Failed to update remark.');
+    }
+  };
   
   // Grouping logic
   const groupedTasks = [];
@@ -487,8 +522,10 @@ export default function TaskReport() {
 
                     <td className="px-5 py-3 text-sm text-center sticky right-0 bg-white/50 dark:bg-slate-950/50 group-hover:bg-slate-50/50 dark:group-hover:bg-slate-800/20 backdrop-blur-sm transition-colors" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-col items-center justify-center gap-1">
-                        <button className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Delete</button>
-                        <button className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Remark</button>
+                        {t?.status != 1 && (
+                           <button onClick={() => handleApprove(t)} className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Approve</button>
+                        )}
+                        <button onClick={(e) => openRemarkModal(t, e)} className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Remark</button>
                       </div>
                     </td>
                   </tr>
@@ -527,6 +564,35 @@ export default function TaskReport() {
                        </div>
                     ))}
                  </div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Remark Modal */}
+      {remarkModal.isOpen && remarkModal.task && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setRemarkModal({isOpen: false, task: null, remark: ''})}>
+           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+              <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30 gap-4">
+                 <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+                    Update Remark
+                 </h3>
+                 <button onClick={() => setRemarkModal({isOpen: false, task: null, remark: ''})} className="text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors p-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                   <X size={20} />
+                 </button>
+              </div>
+              <div className="p-6 bg-white dark:bg-slate-900">
+                 <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2">Remark 1</label>
+                 <textarea 
+                    value={remarkModal.remark} 
+                    onChange={(e) => setRemarkModal({...remarkModal, remark: e.target.value})}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-700 dark:text-slate-200 min-h-[100px] resize-y"
+                    placeholder="Enter remark here..."
+                 ></textarea>
+              </div>
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex justify-end gap-3">
+                 <button onClick={() => setRemarkModal({isOpen: false, task: null, remark: ''})} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Cancel</button>
+                 <button onClick={submitRemark} className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-sm">Save Remark</button>
               </div>
            </div>
         </div>

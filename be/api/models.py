@@ -28,7 +28,7 @@ class AppUsers(models.Model):
     profile_code = models.CharField(max_length=250, default='')
     name = models.CharField(max_length=250, default='')
     contact_person = models.CharField(max_length=250, default='')
-    mobile_no = models.CharField(max_length=12, default='')
+    mobile_no = models.CharField(max_length=12, default='', unique=True)
     state = models.IntegerField(default=0)
     city = models.IntegerField(default=0)
     address = models.CharField(max_length=500, default='')
@@ -84,14 +84,16 @@ class TasksRecord(models.Model):
     task_name = models.TextField(default='')
     state = models.IntegerField(default=0)
     city = models.IntegerField(default=0)
-    tehsil = models.TextField( default='')
-    village = models.TextField(default='')
+    tehsil = models.TextField( default='', blank=True, null=True)
+    village = models.TextField(default='', blank=True, null=True)
     code = models.CharField(max_length=20, default='0')
     site_location = models.CharField(max_length=500, default='')
     flex_range = models.IntegerField(default=1)
+    flex_completed = models.IntegerField(null=True, blank=True)
     location_type = models.CharField(max_length=500, default='Assigned')
     replace_location = models.TextField(null=True, blank=True)
-    dealer_name = models.CharField(max_length=500, default='')
+    dealer_name = models.CharField(max_length=500, default='')  # spacemaker
+    sia_app_dealer_name = models.CharField(max_length=500, default='')
     no_of_flex = models.IntegerField(default=0)
     size_of_flex = models.CharField(max_length=1000, default='')
     task_status = models.IntegerField(default=1)
@@ -122,11 +124,11 @@ class ActivityRecord(models.Model):
     longitude = models.CharField(max_length=250, default='0')
     state = models.IntegerField(default=0)
     city = models.IntegerField(default=0)
-    tehsil = models.TextField( default='')
-    village = models.TextField(default='')
+    tehsil = models.TextField( blank=True, null=True, default='')
+    village = models.TextField(blank=True, null=True, default='')
     deler_remark = models.TextField(null=True, blank=True)
     gps_address = models.CharField(max_length=1000, default='')
-    remark = models.CharField(max_length=1000, default='')
+    remark = models.CharField(max_length=1000, blank=True, null=True, default='')
     remark1 = models.TextField(null=True, blank=True)
     dealer_info = models.TextField(null=True, blank=True)
     view_id = models.IntegerField(default=0)
@@ -147,7 +149,7 @@ class ProjectMaster(models.Model):
     title = models.CharField(max_length=250)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
-    description = models.CharField(max_length=1000, default='')
+    description = models.CharField(max_length=1000, default='', null=True, blank=True)
     status = models.IntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -185,4 +187,14 @@ class AppNotificationHistory(models.Model):
 
     class Meta:
         db_table = 'app_notification_history'
+        managed = True
+
+class Setting(models.Model):
+
+    distance_range = models.CharField(max_length=250, null=True, blank=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'setting_master'
         managed = True

@@ -18,6 +18,14 @@ class StateMasterSerializer(serializers.ModelSerializer):
         model = StateMaster
         fields = '__all__'
 
+from .models import Setting
+
+class SettingMasterSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Setting
+        fields = '__all__'
+
 from .models import CityMaster
 
 
@@ -129,8 +137,18 @@ class GetTasksRecordSerializer(serializers.ModelSerializer):
             return None
 
     def get_dealer_name(self, obj):
+        dealer_id = obj.dealer_name
+
+        if not dealer_id:
+            return None
+
         try:
-            dealer = AppUsers.objects.get(id=obj.dealer_name)
+            dealer_id = int(dealer_id)
+        except (ValueError, TypeError):
+            return dealer_id   # Return the string (e.g. "new holland")
+
+        try:
+            dealer = AppUsers.objects.get(id=dealer_id)
             return GetAppUsersSerializer(dealer).data
         except AppUsers.DoesNotExist:
             return None

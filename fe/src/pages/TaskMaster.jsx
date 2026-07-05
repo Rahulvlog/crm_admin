@@ -96,22 +96,42 @@ export default function TaskMaster() {
   const handleDownloadTemplate = (e) => {
     e.preventDefault();
     const headers = [
-      "project_id",
-      "emp_id",
-      "dealer_name",
-      "site_location",
-      "status",
-      "task_status"
+      "Project Name:",
+      "Client Name",
+      "State",
+      "City",
+      "Tahsil",
+      "Site Location Name",
+      "Dealer",
+      "Dealer Code",
+      "No. of DWP",
+      "Size of DWP",
+      "Location Type",
+      "Employee Name: *",
+      "Employee Login id",
+      "Employee Password",
+      "Client Login ID",
+      "Client Pasward"
     ];
     
     // Add a sample row to guide the user
     const sampleRow = [
-      "1",
-      "2",
-      "3",
+      "Project 1",
+      "Client A",
+      "Maharashtra",
       "Mumbai",
-      "0",
-      "1"
+      "Andheri",
+      "Site A",
+      "Dealer X",
+      "D001",
+      "5",
+      "Large",
+      "Urban",
+      "John Doe",
+      "john.doe",
+      "pass123",
+      "client.a",
+      "cpass123"
     ];
 
     const csvData = headers.join(",") + "\n" + sampleRow.join(",") + "\n";
@@ -133,65 +153,34 @@ export default function TaskMaster() {
     }
 
     setLoading(true);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const text = e.target.result;
-      const rows = text.split('\n').map(row => row.trim()).filter(row => row);
-      
-      if (rows.length < 2) {
-        alert("The file seems to be empty or doesn't have data rows.");
-        setLoading(false);
-        return;
-      }
+    const formData = new FormData();
+    formData.append('file', importFile);
 
-      const headers = rows[0].split(',').map(h => h.trim());
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (let i = 1; i < rows.length; i++) {
-        const rowData = rows[i].split(',').map(c => c.trim());
-        const payload = {};
-        
-        headers.forEach((header, index) => {
-          payload[header] = rowData[index];
-        });
-
-        // Minimum required payload check
-        if (payload.project_id && payload.emp_id) {
-          try {
-            const config = {
-              headers: {
-                'Content-Type': 'application/json',
-                'accesstoken': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mjg0LCJleHAiOjE3NjY0MTIzOTIsImlhdCI6MTc2NTgwNzU5Mn0.7HxWWa3-13A-5aTB2-KUalb4JBXKkclf6o6JGTDtAC8'
-              }
-            };
-            const res = await axios.post('/api/tasks-record/', payload, config);
-            if (res.data && res.data.status) {
-              successCount++;
-            } else {
-              errorCount++;
-            }
-          } catch (err) {
-            errorCount++;
-          }
+    try {
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'accesstoken': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mjg0LCJleHAiOjE3NjY0MTIzOTIsImlhdCI6MTc2NTgwNzU5Mn0.7HxWWa3-13A-5aTB2-KUalb4JBXKkclf6o6JGTDtAC8'
         }
+      };
+      
+      const res = await axios.post('/api/uploadTaskExcel/', formData, config);
+      
+      if (res.data) {
+        alert("Import complete!");
+        setImportFile(null);
+        const fileInput = document.getElementById('import-file-input');
+        if (fileInput) fileInput.value = '';
+        fetchData();
+      } else {
+        alert("Import failed or no data returned.");
       }
-
-      alert(`Import complete! Successfully added: ${successCount}. Failed: ${errorCount}.`);
-      setImportFile(null);
-      
-      const fileInput = document.getElementById('import-file-input');
-      if (fileInput) fileInput.value = '';
-      
-      fetchData();
-    };
-
-    reader.onerror = () => {
-      alert("Error reading the file.");
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Error uploading file.");
+    } finally {
       setLoading(false);
-    };
-
-    reader.readAsText(importFile);
+    }
   };
 
   return (
@@ -216,7 +205,7 @@ export default function TaskMaster() {
             <p className="text-sm text-slate-500 dark:text-slate-400">Task Master Insert Excel Template <a href="#" onClick={handleDownloadTemplate} className="text-red-500 hover:text-red-600 underline ml-1 inline-flex items-center gap-1"><Download size={14}/> Download</a></p>
          </div>
          <div className="flex items-center gap-3 w-full lg:w-auto">
-            <input id="import-file-input" type="file" onChange={(e) => setImportFile(e.target.files[0])} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-500/10 dark:file:text-indigo-400 cursor-pointer" accept=".csv" />
+            <input id="import-file-input" type="file" onChange={(e) => setImportFile(e.target.files[0])} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-500/10 dark:file:text-indigo-400 cursor-pointer" accept=".csv, .xlsx, .xls" />
             <button onClick={handleImportData} className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm font-semibold shadow-sm transition-colors cursor-pointer whitespace-nowrap">Import Data</button>
          </div>
       </div>

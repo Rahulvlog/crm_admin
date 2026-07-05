@@ -140,41 +140,31 @@ export default function TaskReport() {
 
   const [lightbox, setLightbox] = useState({ isOpen: false, photos: [], currentIndex: 0, address: '' });
   const [galleryModal, setGalleryModal] = useState({ isOpen: false, task: null });
-  const [remarkModal, setRemarkModal] = useState({ isOpen: false, task: null, remark: '' });
+  const [remarkModal, setRemarkModal] = useState({ isOpen: false, task: null, remark: '', actionType: '' });
   const exportTemplateRef = React.useRef(null);
   const [exportType, setExportType] = useState(null); // 'pdf' | 'ppt' | null
   
-  const handleApprove = async (task) => {
-    if (!window.confirm('Are you sure you want to approve this task?')) return;
-    try {
-      const res = await axios.put(`/api/activity-record/${task.id}/`, { status: 1 });
-      if (res.data.status) {
-        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 1 } : t));
-      } else {
-        alert('Failed to approve task.');
-      }
-    } catch (err) {
-      alert('Failed to approve task.');
-    }
-  };
-
-  const openRemarkModal = (task, e) => {
+  const openActionModal = (task, e, actionType) => {
     e.stopPropagation();
-    setRemarkModal({ isOpen: true, task, remark: task.remark_1 || '' });
+    setRemarkModal({ isOpen: true, task, remark: task.remark_1 || '', actionType });
   };
 
-  const submitRemark = async () => {
+  const submitAction = async () => {
     if (!remarkModal.task) return;
     try {
-      const res = await axios.put(`/api/activity-record/${remarkModal.task.id}/`, { remark_1: remarkModal.remark });
+      let payload = { remark_1: remarkModal.remark };
+      if (remarkModal.actionType === 'approve') payload.status = 1;
+      else if (remarkModal.actionType === 'reject') payload.status = 2;
+      
+      const res = await axios.put(`/api/activity-record/${remarkModal.task.id}/`, payload);
       if (res.data.status) {
-        setTasks(prev => prev.map(t => t.id === remarkModal.task.id ? { ...t, remark_1: remarkModal.remark } : t));
-        setRemarkModal({ isOpen: false, task: null, remark: '' });
+        setTasks(prev => prev.map(t => t.id === remarkModal.task.id ? { ...t, ...payload } : t));
+        setRemarkModal({ isOpen: false, task: null, remark: '', actionType: '' });
       } else {
-        alert('Failed to update remark.');
+        alert(`Failed to ${remarkModal.actionType || 'update remark'}.`);
       }
     } catch (err) {
-      alert('Failed to update remark.');
+      alert(`Failed to ${remarkModal.actionType || 'update remark'}.`);
     }
   };
   
@@ -227,21 +217,147 @@ export default function TaskReport() {
           pdf.addImage(imgData, 'JPEG', 0, 0, 900, 1200);
         }
         pdf.save('Consolidated_Task_Report.pdf');
-      } 
-      else if (exportType === 'ppt') {
-        const pptx = new pptxgen();
-        pptx.layout = 'LAYOUT_4x3'; 
-        for (let i = 0; i < pages.length; i++) {
-          const canvas = await html2canvas(pages[i], { scale: 1.5, useCORS: true, allowTaint: true });
-          const imgData = canvas.toDataURL('image/jpeg', 0.9);
-          const slide = pptx.addSlide();
-          slide.addImage({ data: imgData, x: 2.18, y: 0, w: 5.625, h: 7.5 }); 
-        }
-        await pptx.writeFile({ fileName: 'Consolidated_Task_Report.pptx' });
       }
     } catch (error) {
       console.error("Export failed:", error);
-      alert("Failed to export. Please try again.");
+      alert("Failed to export PDF. Please try again.");
+    } finally {
+      setExportType(null);
+    }
+  };
+
+  const generatePPT = async () => {
+    setExportType('ppt');
+    try {
+      const pptx = new pptxgen();
+      pptx.defineLayout({ name: 'PORTRAIT', width: 8.5, height: 11 });
+      pptx.layout = 'PORTRAIT';
+
+      for (let taskIndex = 0; taskIndex < groupedTasks.length; taskIndex++) {
+        const task = groupedTasks[taskIndex];
+        const photos = task.all_photos || [];
+        const pages = [];
+        for (let i = 0; i < photos.length; i += 4) {
+          pages.push(photos.slice(i, i + 4));
+        }
+        if (pages.length === 0) pages.push([]);
+
+        const projName = task.task_id?.project_id?.title || task.project_id?.title || '-';
+        const state = task.task_id?.state?.name || task.state?.name || '-';
+        const district = task.task_id?.district?.name || task.district?.name || '-';
+        const city = task.task_id?.city?.name || task.city?.name || '-';
+        const siteLoc = task.task_id?.site_location || task.site_location || '-';
+        const dealerName = task.task_id?.dealer_name?.name || task.dealer_name?.name || '-';
+        const flexSize = task.flex_size || '-';
+        const flexId = task.flex_id || task.id || '-';
+
+        for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+          const slide = pptx.addSlide();
+          let startY = 0.5;
+
+          if (pageIndex === 0) {
+            const tableRows = [
+              [
+                { text: "Project Name:", options: { fill: "F1F5F9", bold: true } }, { text: String(projName) },
+                { text: "State:", options: { fill: "F1F5F9", bold: true } }, { text: String(state) }
+              ],
+              [
+                { text: "District:", options: { fill: "F1F5F9", bold: true } }, { text: String(district) },
+                { text: "City:", options: { fill: "F1F5F9", bold: true } }, { text: String(city) }
+              ],
+              [
+                { text: "Site Location:", options: { fill: "F1F5F9", bold: true } }, { text: String(siteLoc) },
+                { text: "Flex Range:", options: { fill: "F1F5F9", bold: true } }, { text: "-" }
+              ],
+              [
+                { text: "Location Type:", options: { fill: "F1F5F9", bold: true } }, { text: "Rural/Urban" },
+                { text: "Dealer Name:", options: { fill: "F1F5F9", bold: true } }, { text: String(dealerName) }
+              ],
+              [
+                { text: "No. of Flex:", options: { fill: "F1F5F9", bold: true } }, { text: "-" },
+                { text: "Size of Flex:", options: { fill: "F1F5F9", bold: true } }, { text: String(flexSize) }
+              ],
+              [
+                { text: "Flex ID:", options: { fill: "F1F5F9", bold: true } }, { text: String(flexId) },
+                { text: "", options: { fill: "F1F5F9", bold: true } }, { text: "" }
+              ]
+            ];
+
+            slide.addTable(tableRows, { 
+              x: 0.5, y: 0.5, w: 7.5, 
+              rowH: 0.3, 
+              border: { type: "solid", pt: 1, color: "CBD5E1" },
+              fontSize: 10,
+              color: "1E293B",
+              valign: "middle"
+            });
+            startY = 2.8;
+          }
+
+          const pagePhotos = pages[pageIndex];
+          const positions = [
+            { x: 0.5, y: startY },
+            { x: 4.25, y: startY },
+            { x: 0.5, y: startY + 3.8 },
+            { x: 4.25, y: startY + 3.8 }
+          ];
+
+          for (let pIdx = 0; pIdx < pagePhotos.length; pIdx++) {
+            const photo = pagePhotos[pIdx];
+            const pos = positions[pIdx];
+            const w = 3.75;
+            const h = 3.5;
+            const imgUrl = getImageUrl(photo, true);
+
+            let base64Data = null;
+            try {
+              const response = await fetch(imgUrl);
+              const blob = await response.blob();
+              base64Data = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+              });
+            } catch (err) {
+              console.error("Failed to load image for PPT:", err);
+            }
+
+            if (base64Data) {
+              slide.addImage({ data: base64Data, x: pos.x, y: pos.y, w: w, h: h, sizing: { type: 'contain', w: w, h: h } });
+            }
+
+            const boxH = 0.6;
+            const boxY = pos.y + h - boxH;
+            slide.addShape(pptx.ShapeType.rect, { 
+              x: pos.x, y: boxY, w: w, h: boxH, 
+              fill: { color: "000000", transparency: 50 } 
+            });
+
+            const gpsAddress = task.gps_address && task.gps_address !== '-' ? task.gps_address : '';
+            slide.addText(gpsAddress, { 
+              x: pos.x + 0.1, y: boxY, w: w - 0.2, h: 0.3, 
+              color: "FFFFFF", fontSize: 9, bold: true, 
+              valign: "bottom" 
+            });
+
+            const lat = task.latitude || task.task_id?.latitude || '';
+            const long = task.longitude || task.task_id?.longitude || '';
+            const dateStr = task.created_date ? new Date(task.created_date).toLocaleString('en-GB') : '';
+            const gpsDetails = `Lat: ${lat}  Long: ${long}  Date: ${dateStr}`;
+            
+            slide.addText(gpsDetails, { 
+              x: pos.x + 0.1, y: boxY + 0.3, w: w - 0.2, h: 0.2, 
+              color: "FFFFFF", fontSize: 8, 
+              valign: "top" 
+            });
+          }
+        }
+      }
+
+      await pptx.writeFile({ fileName: 'Consolidated_Task_Report.pptx' });
+    } catch (error) {
+      console.error("PPT Export failed:", error);
+      alert("Failed to export PPT. Please try again.");
     } finally {
       setExportType(null);
     }
@@ -309,7 +425,7 @@ export default function TaskReport() {
         `"${dealerName.replace(/"/g, '""')}"`,
         `"${siteLoc.replace(/"/g, '""')}"`,
         `"${(t.gps_address || '-').replace(/"/g, '""')}"`,
-        t.status == 1 ? 'Completed' : 'Pending'
+        t.status == 1 ? 'Completed' : t.status == 2 ? 'Rejected' : 'Pending'
       ];
       csvRows.push(row.join(","));
     });
@@ -427,7 +543,7 @@ export default function TaskReport() {
            </div>
            <div className="flex items-center gap-2">
              <button 
-               onClick={() => setExportType('ppt')} 
+               onClick={generatePPT} 
                disabled={exportType !== null}
                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2 border border-white/10 shadow-sm"
              >
@@ -515,6 +631,8 @@ export default function TaskReport() {
                     <td className="px-5 py-3 text-sm font-medium text-center">
                        {t?.status == 1 ? (
                           <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-200 dark:border-emerald-500/20">Completed</span>
+                       ) : t?.status == 2 ? (
+                          <span className="text-rose-600 bg-rose-50 dark:bg-rose-500/10 px-2.5 py-1 rounded-md border border-rose-200 dark:border-rose-500/20">Rejected</span>
                        ) : (
                           <span className="text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-200 dark:border-amber-500/20">Pending</span>
                        )}
@@ -522,10 +640,13 @@ export default function TaskReport() {
 
                     <td className="px-5 py-3 text-sm text-center sticky right-0 bg-white/50 dark:bg-slate-950/50 group-hover:bg-slate-50/50 dark:group-hover:bg-slate-800/20 backdrop-blur-sm transition-colors" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-col items-center justify-center gap-1">
-                        {t?.status != 1 && (
-                           <button onClick={() => handleApprove(t)} className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Approve</button>
+                        {t?.status != 1 && t?.status != 2 && (
+                           <>
+                             <button onClick={(e) => openActionModal(t, e, 'approve')} className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Approve</button>
+                             <button onClick={(e) => openActionModal(t, e, 'reject')} className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Reject</button>
+                           </>
                         )}
-                        <button onClick={(e) => openRemarkModal(t, e)} className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Remark</button>
+                        <button onClick={(e) => openActionModal(t, e, 'remark')} className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold whitespace-nowrap w-24">Remark</button>
                       </div>
                     </td>
                   </tr>
@@ -571,18 +692,18 @@ export default function TaskReport() {
 
       {/* Remark Modal */}
       {remarkModal.isOpen && remarkModal.task && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setRemarkModal({isOpen: false, task: null, remark: ''})}>
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setRemarkModal({isOpen: false, task: null, remark: '', actionType: ''})}>
            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
               <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30 gap-4">
-                 <h3 className="font-bold text-lg text-slate-800 dark:text-white">
-                    Update Remark
+                 <h3 className="font-bold text-lg text-slate-800 dark:text-white capitalize">
+                    {remarkModal.actionType === 'remark' ? 'Update Remark' : `${remarkModal.actionType} Task`}
                  </h3>
-                 <button onClick={() => setRemarkModal({isOpen: false, task: null, remark: ''})} className="text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors p-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                 <button onClick={() => setRemarkModal({isOpen: false, task: null, remark: '', actionType: ''})} className="text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors p-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
                    <X size={20} />
                  </button>
               </div>
               <div className="p-6 bg-white dark:bg-slate-900">
-                 <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2">Remark 1</label>
+                 <label className="block text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2">Remark (Optional)</label>
                  <textarea 
                     value={remarkModal.remark} 
                     onChange={(e) => setRemarkModal({...remarkModal, remark: e.target.value})}
@@ -591,8 +712,14 @@ export default function TaskReport() {
                  ></textarea>
               </div>
               <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex justify-end gap-3">
-                 <button onClick={() => setRemarkModal({isOpen: false, task: null, remark: ''})} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Cancel</button>
-                 <button onClick={submitRemark} className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-sm">Save Remark</button>
+                 <button onClick={() => setRemarkModal({isOpen: false, task: null, remark: '', actionType: ''})} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Cancel</button>
+                 <button onClick={submitAction} className={`px-4 py-2 text-sm font-semibold text-white rounded-xl transition-colors shadow-sm ${
+                    remarkModal.actionType === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700' :
+                    remarkModal.actionType === 'reject' ? 'bg-rose-600 hover:bg-rose-700' :
+                    'bg-indigo-600 hover:bg-indigo-700'
+                 }`}>
+                    Save {remarkModal.actionType === 'remark' ? 'Remark' : remarkModal.actionType === 'approve' ? 'Approve' : 'Reject'}
+                 </button>
               </div>
            </div>
         </div>
@@ -669,7 +796,7 @@ export default function TaskReport() {
       )}
 
       {/* Hidden element for Export Generation */}
-      {exportType && groupedTasks.length > 0 && (
+      {exportType === 'pdf' && groupedTasks.length > 0 && (
         <ExportTaskTemplate 
           ref={exportTemplateRef} 
           tasks={groupedTasks} 

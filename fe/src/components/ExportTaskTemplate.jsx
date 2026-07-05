@@ -86,41 +86,41 @@ const ExportTaskTemplate = forwardRef(({ tasks, getImageUrl, onReady }, ref) => 
 
               <div className="grid grid-cols-2 gap-4 flex-grow content-start">
                 {pagePhotos.map((photo, idx) => (
-                  <div key={idx} className="relative border-4 border-white rounded-lg shadow-md overflow-hidden bg-slate-100" style={{ height: '450px' }}>
+                  <div key={idx} className="relative border-4 border-white rounded-lg shadow-md overflow-hidden bg-slate-100 text-center" style={{ height: '450px', lineHeight: '450px' }}>
                     <img 
                       src={getImageUrl(photo, true)} 
-                      alt="Task Photo" 
-                      className="w-full h-full object-cover" 
+                      alt="" 
+                      style={{ maxWidth: '100%', maxHeight: '100%', verticalAlign: 'middle', display: 'inline-block' }}
                       crossOrigin="anonymous" 
                       onLoad={handleImageLoad}
                       onError={handleImageLoad}
                     />
                     
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-md p-3 flex gap-3 text-white items-center border-t border-white/10" style={{ zIndex: 10 }}>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-md p-4 flex gap-4 text-white items-center border-t border-white/10 text-left" style={{ zIndex: 10, lineHeight: 'normal' }}>
                       {(task.latitude || task.task_id?.latitude) && (task.longitude || task.task_id?.longitude) && (
                         <div className="shrink-0 w-16 h-16 rounded bg-slate-800 overflow-hidden flex items-center justify-center border border-white/20">
                           <MapPin size={28} className="text-rose-400" />
                         </div>
                       )}
-                      <div className="flex flex-col justify-center overflow-hidden w-full">
+                      <div className="flex flex-col justify-center w-full">
                         {task.gps_address && task.gps_address !== '-' && (
-                          <div className="truncate font-semibold mb-1 pb-1 border-b border-white/20 text-white text-sm">
+                          <div className="font-semibold mb-2 pb-2 border-b border-white/20 text-white text-sm leading-relaxed" style={{ wordBreak: 'break-word' }}>
                             {task.gps_address}
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono text-[11px] mt-1">
+                        <div className="grid grid-cols-2 gap-x-2 gap-y-2 font-mono text-[12px] mt-1 leading-snug">
                           {(task.latitude || task.task_id?.latitude) && (
-                            <div className="truncate">
+                            <div>
                               <span className="text-white/50 mr-1">Lat:</span> {task.latitude || task.task_id?.latitude}
                             </div>
                           )}
                           {(task.longitude || task.task_id?.longitude) && (
-                            <div className="truncate">
+                            <div>
                               <span className="text-white/50 mr-1">Long:</span> {task.longitude || task.task_id?.longitude}
                             </div>
                           )}
                           {task.created_date && (
-                            <div className="col-span-2 truncate">
+                            <div className="col-span-2">
                               <span className="text-white/50 mr-1">Date:</span> {new Date(task.created_date).toLocaleString('en-GB')}
                             </div>
                           )}

@@ -7,9 +7,11 @@ from django.urls import path
 from api.activity_record import activity_record_api
 from api.app_notification import app_notification_history_api
 from api.auth import app_users_api
+from api.import_excel import uploadTaskExcel
 from api.login import login_api
 from api.project_master import project_master_api
 from api.roles import role_master_api
+from api.utils import settings_api
 from api.state_city import city_master_api, state_master_api
 from api.task_record import tasks_record_api
 from api.upload_image import upload_image_api
@@ -39,4 +41,6 @@ urlpatterns = [
     path('role-master/<int:id>/', role_master_api),
     path('app-notification-history/', app_notification_history_api),
     path('app-notification-history/<int:id>/', app_notification_history_api),
+    path('setting/', settings_api),
+    path('uploadTaskExcel/', uploadTaskExcel),
 ]

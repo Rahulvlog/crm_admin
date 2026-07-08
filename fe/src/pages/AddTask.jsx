@@ -29,6 +29,7 @@ export default function AddTask() {
     dealer_name: '',
     flex_with_amount: '',
     flex_height_amount: '',
+    flex_range: '',
     status: 0,
     task_status: 1
   });
@@ -74,6 +75,7 @@ export default function AddTask() {
               dealer_name: d.dealer_name || '',
               flex_with_amount: d.flex_with_amount || '',
               flex_height_amount: d.flex_height_amount || '',
+              flex_range: d.flex_range ?? '',
               status: d.status ?? 0,
               task_status: d.task_status ?? 1
             });
@@ -121,7 +123,8 @@ export default function AddTask() {
         ...restFormData,
         client_id: loggedInUserId || restFormData.client_id, // Use logged-in user as client
         state: state_id || 1,
-        city: city_id || 101
+        city: city_id || 101,
+        flex_range: (restFormData.flex_range === '' || restFormData.flex_range === null || restFormData.flex_range === undefined) ? 1 : Number(restFormData.flex_range)
       };
 
       if (!id) {
@@ -292,6 +295,11 @@ export default function AddTask() {
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Flex Height</label>
                 <input type="text" name="flex_height_amount" value={formData.flex_height_amount} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="H" />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Flex Range</label>
+              <input type="number" min="1" name="flex_range" value={formData.flex_range} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 transition-all" placeholder="Default 1" />
             </div>
 
             <div>

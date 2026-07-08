@@ -305,11 +305,12 @@ export default function TaskReport() {
           for (let pIdx = 0; pIdx < pagePhotos.length; pIdx++) {
             const photo = pagePhotos[pIdx];
             const pos = positions[pIdx];
-            const w = 3.75;
-            const h = 3.5;
+            const cellW = 3.75;
+            const cellH = 3.5;
             const imgUrl = getImageUrl(photo, true);
 
             let base64Data = null;
+            let naturalRatio = 1;
             try {
               const response = await fetch(imgUrl);
               const blob = await response.blob();
@@ -318,37 +319,58 @@ export default function TaskReport() {
                 reader.onloadend = () => resolve(reader.result);
                 reader.readAsDataURL(blob);
               });
+              // Measure natural dimensions so tile matches image orientation
+              naturalRatio = await new Promise((resolve) => {
+                const im = new Image();
+                im.onload = () => resolve((im.naturalWidth && im.naturalHeight) ? im.naturalWidth / im.naturalHeight : 1);
+                im.onerror = () => resolve(1);
+                im.src = base64Data;
+              });
             } catch (err) {
               console.error("Failed to load image for PPT:", err);
             }
 
+            // Fit tile to image aspect ratio inside the cell (no forced square/contain letterboxing)
+            const cellRatio = cellW / cellH;
+            let w, h;
+            if (naturalRatio >= cellRatio) {
+              w = cellW;
+              h = cellW / naturalRatio;
+            } else {
+              h = cellH;
+              w = cellH * naturalRatio;
+            }
+            // Center inside the cell
+            const imgX = pos.x + (cellW - w) / 2;
+            const imgY = pos.y + (cellH - h) / 2;
+
             if (base64Data) {
-              slide.addImage({ data: base64Data, x: pos.x, y: pos.y, w: w, h: h, sizing: { type: 'contain', w: w, h: h } });
+              slide.addImage({ data: base64Data, x: imgX, y: imgY, w, h });
             }
 
             const boxH = 0.6;
-            const boxY = pos.y + h - boxH;
-            slide.addShape(pptx.ShapeType.rect, { 
-              x: pos.x, y: boxY, w: w, h: boxH, 
-              fill: { color: "000000", transparency: 50 } 
+            const boxY = imgY + h - boxH;
+            slide.addShape(pptx.ShapeType.rect, {
+              x: imgX, y: boxY, w, h: boxH,
+              fill: { color: "000000", transparency: 50 }
             });
 
             const gpsAddress = task.gps_address && task.gps_address !== '-' ? task.gps_address : '';
-            slide.addText(gpsAddress, { 
-              x: pos.x + 0.1, y: boxY, w: w - 0.2, h: 0.3, 
-              color: "FFFFFF", fontSize: 9, bold: true, 
-              valign: "bottom" 
+            slide.addText(gpsAddress, {
+              x: imgX + 0.1, y: boxY, w: w - 0.2, h: 0.3,
+              color: "FFFFFF", fontSize: 9, bold: true,
+              valign: "bottom"
             });
 
             const lat = task.latitude || task.task_id?.latitude || '';
             const long = task.longitude || task.task_id?.longitude || '';
             const dateStr = task.created_date ? new Date(task.created_date).toLocaleString('en-GB') : '';
             const gpsDetails = `Lat: ${lat}  Long: ${long}  Date: ${dateStr}`;
-            
-            slide.addText(gpsDetails, { 
-              x: pos.x + 0.1, y: boxY + 0.3, w: w - 0.2, h: 0.2, 
-              color: "FFFFFF", fontSize: 8, 
-              valign: "top" 
+
+            slide.addText(gpsDetails, {
+              x: imgX + 0.1, y: boxY + 0.3, w: w - 0.2, h: 0.2,
+              color: "FFFFFF", fontSize: 8,
+              valign: "top"
             });
           }
         }

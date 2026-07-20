@@ -14,6 +14,8 @@ export default defineConfig({
       '/api': {
         target: 'http://72.61.229.236',
         changeOrigin: true,
+        timeout: 15000,
+        proxyTimeout: 15000,
         headers: {
           'Origin': 'https://admin.townsgenie.in',
           'Referer': 'https://admin.townsgenie.in/'

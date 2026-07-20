@@ -32,18 +32,74 @@ if ($method === 'OPTIONS') {
 }
 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
 
-// Forward the request body (for POST/PUT)
-$input = file_get_contents('php://input');
-if (!empty($input)) {
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $input);
+// Detect original Content-Type from the incoming request
+$incomingContentType = '';
+if (isset($_SERVER['CONTENT_TYPE'])) {
+    $incomingContentType = $_SERVER['CONTENT_TYPE'];
+} elseif (isset($_SERVER['HTTP_CONTENT_TYPE'])) {
+    $incomingContentType = $_SERVER['HTTP_CONTENT_TYPE'];
+}
+
+$isMultipart = stripos($incomingContentType, 'multipart/form-data') !== false;
+
+// Forward the request body
+if ($isMultipart) {
+    // For multipart uploads, PHP has already parsed the body into $_POST/$_FILES,
+    // so php://input is empty. Rebuild the request using cURL's multipart support
+    // so it generates a fresh boundary and correct Content-Type header.
+    $postFields = array();
+
+    foreach ($_POST as $key => $value) {
+        if (is_array($value)) {
+            foreach ($value as $v) {
+                $postFields[$key . '[]'] = $v;
+            }
+        } else {
+            $postFields[$key] = $value;
+        }
+    }
+
+    foreach ($_FILES as $key => $file) {
+        if (is_array($file['tmp_name'])) {
+            foreach ($file['tmp_name'] as $i => $tmp) {
+                if (is_uploaded_file($tmp)) {
+                    $postFields[$key . '[' . $i . ']'] = new CURLFile(
+                        $tmp,
+                        $file['type'][$i],
+                        $file['name'][$i]
+                    );
+                }
+            }
+        } else {
+            if (is_uploaded_file($file['tmp_name'])) {
+                $postFields[$key] = new CURLFile(
+                    $file['tmp_name'],
+                    $file['type'],
+                    $file['name']
+                );
+            }
+        }
+    }
+
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+    // Do NOT set Content-Type manually; cURL will set it with the right boundary.
+    $forwardContentType = null;
+} else {
+    $input = file_get_contents('php://input');
+    if (!empty($input)) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $input);
+    }
+    $forwardContentType = !empty($incomingContentType) ? $incomingContentType : 'application/json';
 }
 
 // Set custom headers to bypass backend checks
 $headers = array(
     'Origin: https://admin.townsgenie.in',
-    'Referer: https://admin.townsgenie.in/',
-    'Content-Type: application/json'
+    'Referer: https://admin.townsgenie.in/'
 );
+if ($forwardContentType !== null) {
+    $headers[] = 'Content-Type: ' . $forwardContentType;
+}
 
 // We need to pass the Authorization header!
 if (isset($_SERVER['HTTP_AUTHORIZATION'])) {

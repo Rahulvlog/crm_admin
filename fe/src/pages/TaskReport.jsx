@@ -5,6 +5,7 @@ import axios from 'axios';
 import { jsPDF } from 'jspdf';
 import pptxgen from 'pptxgenjs';
 import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
 import ExportTaskTemplate from '../components/ExportTaskTemplate';
 
 const getImageUrl = (photoUrl, forceCors = false) => {
@@ -415,53 +416,137 @@ export default function TaskReport() {
       return;
     }
 
+    // Determine maximum number of photos across grouped rows so we can create
+    // Photo1 .. PhotoN columns dynamically.
+    const maxPhotos = groupedTasks.reduce((max, t) => {
+      const count = Array.isArray(t.all_photos) ? t.all_photos.length : 0;
+      return count > max ? count : max;
+    }, 0);
+
+    const photoHeaders = Array.from({ length: maxPhotos }, (_, i) => `Photo${i + 1}`);
+
     const headers = [
-      "SNo.",
-      "Ref No. & DateTime",
-      "Flex ID",
-      "Project Detail",
-      "Employee_Name",
-      "Size_of_DWP",
-      "Dealer Info",
-      "Site Location",
-      "Address",
-      "Status"
+      "Serial Number",
+      "Project Name",
+      "Status",
+      "User Name & ID",
+      "Distance from dealer",
+      "Distance from last print",
+      "Dealer Code",
+      "Dealer Name",
+      "State",
+      "District",
+      "Tehsil",
+      "City",
+      "Village",
+      "Site Name",
+      "Print Size",
+      "Area",
+      ...photoHeaders,
+      "Installed Date",
+      "Remark",
+      "Created Date",
     ];
 
-    const csvRows = [];
-    csvRows.push(headers.join(","));
+    const fmtDate = (v) => {
+      if (!v) return '';
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return String(v);
+      return d.toLocaleString('en-GB');
+    };
 
-    groupedTasks.forEach((t, idx) => {
-      const projName = t.task_id?.project_id?.title || t.project_id?.title || '-';
-      const empName = t.task_id?.emp_id?.name || t.emp_id?.name || `Employee #${t.emp_id}`;
-      const dealerName = t.task_id?.dealer_name?.name || t.dealer_name?.name || '-';
-      const siteLoc = t.task_id?.site_location || t.site_location || '-';
+    const statusText = (s) => (s == 1 ? 'Completed' : s == 2 ? 'Rejected' : 'Pending');
 
-      const row = [
+    const rows = groupedTasks.map((t, idx) => {
+      const emp = t.task_id?.emp_id || t.emp_id || null;
+      const empObj = (emp && typeof emp === 'object') ? emp : null;
+      const empName = empObj?.name || (typeof emp === 'string' ? emp : '') || '';
+      const empCode = empObj?.profile_code || '';
+      const empId = empObj?.id ?? (typeof emp === 'number' ? emp : '');
+      const userNameAndId = [empName, empCode || empId].filter(Boolean).join(' - ');
+
+      const dealer = t.task_id?.dealer_name || t.dealer_name || null;
+      const dealerObj = (dealer && typeof dealer === 'object') ? dealer : null;
+      const dealerName = dealerObj?.name || (typeof dealer === 'string' ? dealer : '') || '';
+      const dealerCode = dealerObj?.profile_code || '';
+
+      const stateName = t.task_id?.state?.name || t.state?.name || '';
+      const districtName = t.task_id?.district?.name || t.district?.name || '';
+      const cityName = t.task_id?.city?.name || t.city?.name || '';
+      const tehsilName = t.task_id?.tehsil?.name || t.tehsil?.name ||
+                        (typeof t.task_id?.tehsil === 'string' ? t.task_id.tehsil : '') ||
+                        (typeof t.tehsil === 'string' ? t.tehsil : '') || '';
+      const villageName = (typeof t.task_id?.village === 'string' ? t.task_id.village : '') ||
+                          (typeof t.village === 'string' ? t.village : '') ||
+                          t.task_id?.village?.name || t.village?.name || '';
+
+      const projectName = t.task_id?.project_id?.title || t.project_id?.title || '';
+      const siteName = t.task_id?.site_location || t.site_location || '';
+      const printSize = t.flex_size || t.task_id?.size_of_flex || '';
+
+      const area = t.area || t.task_id?.area || t.gps_address || '';
+
+      const distanceFromDealer = t.distance_from_dealer ?? t.task_id?.distance_from_dealer ?? '';
+      const distanceFromLast = t.distance_from_last ?? '';
+
+      const installedDate = fmtDate(t.installed_date || t.task_id?.installed_date || '');
+      const createdDate = fmtDate(t.created_date);
+
+      const photos = Array.isArray(t.all_photos) ? t.all_photos : [];
+      const photoCells = Array.from({ length: maxPhotos }, (_, i) =>
+        photos[i] ? getImageUrl(photos[i]) : ''
+      );
+
+      return [
         idx + 1,
-        t.created_date ? new Date(t.created_date).toLocaleString('en-GB').replace(/,/g, '') : '-',
-        t.flex_id || t.id,
-        `"${projName.replace(/"/g, '""')}"`,
-        `"${empName.replace(/"/g, '""')}"`,
-        `"${(t.flex_size || '-').replace(/"/g, '""')}"`,
-        `"${dealerName.replace(/"/g, '""')}"`,
-        `"${siteLoc.replace(/"/g, '""')}"`,
-        `"${(t.gps_address || '-').replace(/"/g, '""')}"`,
-        t.status == 1 ? 'Completed' : t.status == 2 ? 'Rejected' : 'Pending'
+        projectName,
+        statusText(t.status),
+        userNameAndId,
+        distanceFromDealer,
+        distanceFromLast,
+        dealerCode,
+        dealerName,
+        stateName,
+        districtName,
+        tehsilName,
+        cityName,
+        villageName,
+        siteName,
+        printSize,
+        area,
+        ...photoCells,
+        installedDate,
+        t.remark || '',
+        createdDate,
       ];
-      csvRows.push(row.join(","));
     });
 
-    const csvData = csvRows.join("\n");
-    const blob = new Blob([csvData], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', 'task_report.csv');
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Build worksheet with headers + rows
+    const aoa = [headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Convert photo cells to hyperlinks for easy access from Excel.
+    const photoStartCol = 16; // 0-based index of Photo1 column (after Area)
+    for (let r = 0; r < rows.length; r++) {
+      for (let p = 0; p < maxPhotos; p++) {
+        const url = rows[r][photoStartCol + p];
+        if (!url) continue;
+        const cellRef = XLSX.utils.encode_cell({ r: r + 1, c: photoStartCol + p });
+        ws[cellRef] = { t: 's', v: url, l: { Target: url, Tooltip: 'Open image' } };
+      }
+    }
+
+    // Basic column widths
+    ws['!cols'] = headers.map((h) => {
+      if (h.startsWith('Photo')) return { wch: 40 };
+      if (h === 'Project Name' || h === 'Site Name' || h === 'Area' || h === 'Dealer Name') return { wch: 28 };
+      if (h === 'User Name & ID' || h === 'Created Date' || h === 'Installed Date') return { wch: 22 };
+      return { wch: 16 };
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Task Report');
+    XLSX.writeFile(wb, 'task_report.xlsx');
   };
 
   return (

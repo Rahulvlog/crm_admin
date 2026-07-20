@@ -2,7 +2,7 @@
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import ActivityRecord
+from .models import ActivityRecord, TasksRecord
 from .serializers import ActivityRecordSerializer, GetActivityRecordSerializer
 
 
@@ -64,7 +64,9 @@ def activity_record_api(request, id=None):
             "data": serializer.data
         })
 
-    # =========================
+    #
+    # 
+    #  =========================
     # POST API
     # =========================
     elif request.method == 'POST':
@@ -72,8 +74,12 @@ def activity_record_api(request, id=None):
         serializer = ActivityRecordSerializer(data=request.data)
 
         if serializer.is_valid():
+            task_id = serializer.validated_data.get("task_id")
+            TasksRecord.objects.filter(id=task_id).update(status=2)
 
             serializer.save()
+
+            
 
             return Response({
                 "status": True,

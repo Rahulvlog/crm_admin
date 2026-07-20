@@ -11,6 +11,7 @@ def dashboard_api(request):
 
     user_id = request.GET.get("user_id")
     dealer_id = request.GET.get("dealer_id")
+    manager_id = request.GET.get("manager_id")
 
     tasks = TasksRecord.objects.all()
     activities = ActivityRecord.objects.all()
@@ -24,6 +25,15 @@ def dashboard_api(request):
     if dealer_id:
         tasks = tasks.filter(dealer_name=dealer_id)   # dealer_name stores dealer_id
         activities = activities.filter(dealer_id=user_id)
+
+    if manager_id:
+        try:
+            tasks = tasks.filter(client_id=manager_id)
+            task_ids = tasks.values_list("task_id", flat=True)
+            activities = activities.filter(task_id__in=task_ids)
+        except Exception as e:
+            print(f"Error: {e}")   # Optional: log the error
+            pass
 
     # Filter activities based on filtered tasks
     # task_ids = tasks.values_list("task_id", flat=True)

@@ -74,10 +74,12 @@ def activity_record_api(request, id=None):
         serializer = ActivityRecordSerializer(data=request.data)
 
         if serializer.is_valid():
+            task_id = serializer.validated_data.get("task_id")
+            TasksRecord.objects.filter(id=task_id).update(status=2)
 
             serializer.save()
 
-            TasksRecord.objects.filter(task_id=activity.task_id).update(status=2)
+            
 
             return Response({
                 "status": True,

@@ -75,35 +75,17 @@ def activity_record_api(request, id=None):
 
         if serializer.is_valid():
             task_id = serializer.validated_data.get("task_id")
-            try:
-                task = TasksRecord.objects.get(id=task_id)
-            except TasksRecord.DoesNotExist:
-                return Response({
-                    "status": False,
-                    "errors": "Task not found"
-                })
-
-            # Existing activity count
-            activity_count = ActivityRecord.objects.filter(task_id=task.id).count()
-            # Limit reached
-            if activity_count >= task.no_of_flex:
-                return Response({
-                    "status": False,
-                    "errors": f"Only {task.no_of_flex} activities print are allowed."
-                })
-            
-            task.no_of_flex
-            task.status = 1
-            task.save()
+            TasksRecord.objects.filter(id=task_id).update(status=2)
 
             serializer.save()
+
+            
 
             return Response({
                 "status": True,
                 "message": "Activity created successfully",
                 "data": serializer.data
             })
-            
 
         return Response({
             "status": False,

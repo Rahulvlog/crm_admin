@@ -47,9 +47,9 @@ def dashboard_api(request):
 
         # Tasks
         "total_task": tasks.count(),
-        "pending_task": tasks.filter(status=1).count(),
-        "inprogress_task": tasks.filter(status=2).count(),
-        "completed_task": tasks.filter(status=3).count(),
+        "pending_task": tasks.filter(status=0).count(),
+        "inprogress_task": tasks.filter(status=1).count(),
+        "completed_task": tasks.filter(status=2).count(),
 
         # Activity
         "total_print": activities.count(),

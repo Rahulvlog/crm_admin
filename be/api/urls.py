@@ -8,6 +8,7 @@ from api.activity_record import activity_record_api
 from api.app_notification import app_notification_history_api
 from api.auth import app_users_api
 from api.dashboard import dashboard_api
+from api.del_data import delete_all_records
 from api.import_excel import uploadTaskExcel
 from api.login import login_api
 from api.project_master import project_master_api
@@ -44,5 +45,6 @@ urlpatterns = [
     path('app-notification-history/<int:id>/', app_notification_history_api),
     path('setting/', settings_api),
     path('uploadTaskExcel/', uploadTaskExcel),
-    path("dashboard/", dashboard_api)
+    path("dashboard/", dashboard_api),
+    path('delete-all-records/', delete_all_records, name='delete_all_records'),
 ]

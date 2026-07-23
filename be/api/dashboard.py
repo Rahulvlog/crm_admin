@@ -60,7 +60,7 @@ def dashboard_api(request):
         # Activity
         "total_print": total_print,
         "pending_print": pending_print,
-        "installed_print": activities.filter(status=0).count(),
+        "installed_print": activity_count,
         "rejected_print": activities.filter(status=-1).count(),
         "completed_print": activities.filter(status=1).count(),
     }

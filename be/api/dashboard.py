@@ -29,7 +29,7 @@ def dashboard_api(request):
     if manager_id:
         try:
             tasks = tasks.filter(client_id=manager_id)
-            task_ids = tasks.values_list("task_id", flat=True)
+            task_ids = tasks.values_list("id", flat=True)
             activities = activities.filter(task_id__in=task_ids)
         except Exception as e:
             print(f"Error: {e}")   # Optional: log the error
@@ -60,7 +60,7 @@ def dashboard_api(request):
         # Activity
         "total_print": total_print,
         "pending_print": pending_print,
-        "installed_print": activity_count,
+        "installed_print": activity_count - activities.filter(status=-1).count(),
         "rejected_print": activities.filter(status=-1).count(),
         "completed_print": activities.filter(status=1).count(),
     }

@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import AppUsers, TasksRecord, ActivityRecord
-
+from django.db.models import Sum
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -34,10 +34,16 @@ def dashboard_api(request):
         except Exception as e:
             print(f"Error: {e}")   # Optional: log the error
             pass
+    
+    total_print = tasks.aggregate(
+        total=Sum("no_of_flex")
+    )["total"] or 0
 
-    # Filter activities based on filtered tasks
-    # task_ids = tasks.values_list("task_id", flat=True)
-    # activities = activities.filter(task_id__in=task_ids)
+    # Activity count
+    activity_count = activities.count()
+
+    # Remaining / Pending prints
+    pending_print = max(total_print - activity_count, 0)
 
     data = {
         # Users (Global)
@@ -52,8 +58,9 @@ def dashboard_api(request):
         "completed_task": tasks.filter(status=2).count(),
 
         # Activity
-        "total_print": activities.count(),
-        "pending_print": activities.filter(status=0).count(),
+        "total_print": total_print,
+        "pending_print": pending_print,
+        "installed_print": activities.filter(status=0).count(),
         "rejected_print": activities.filter(status=-1).count(),
         "completed_print": activities.filter(status=1).count(),
     }

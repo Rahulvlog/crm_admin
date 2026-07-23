@@ -24,7 +24,7 @@ def dashboard_api(request):
     # Filter by Dealer
     if dealer_id:
         tasks = tasks.filter(dealer_name=dealer_id)   # dealer_name stores dealer_id
-        activities = activities.filter(dealer_name=dealer_id)
+        activities = activities.filter(dealer_id=dealer_id)
 
     if manager_id:
         try:

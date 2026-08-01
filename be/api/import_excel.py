@@ -26,6 +26,7 @@ def uploadTaskExcel(request, id=None):
                 "status": False,
                 "message": "Please upload an Excel file."
             })
+            
 
         try:
 
@@ -87,20 +88,25 @@ def uploadTaskExcel(request, id=None):
                             "name": emp_name,
                             # "mobile_no": emp_mobile,
                             "password": emp_password,
+                            "role_type": "User"
                         }
                     )
 
-                    #########################################
                     # Dealer
                     #########################################
 
-                    # dealer_name = str(row.get("Dealer", "")).strip()
+                    dealer_name = str(row.get("Dealer Name", "")).strip()
+                    dealer_mobile = str(row.get("Dealer Login ID", "")).strip()
+                    dealer_password = str(row.get("Dealer Password", "")).strip()
 
-                    # dealer = AppUsers.objects.filter(
-                    #     name__iexact=dealer_name
-                    # ).first()
-
-                    # dealer_id = dealer.id if dealer else 0
+                    dealer, _ = AppUsers.objects.get_or_create(
+                        mobile_no=dealer_mobile,
+                        defaults={
+                            "name": dealer_name,
+                            "password": dealer_password,
+                            "role_type": "Dealer",   # agar role_type field hai
+                        }
+                    )
 
                     #########################################
                     # State
@@ -138,7 +144,7 @@ def uploadTaskExcel(request, id=None):
                     TasksRecord.objects.create(
 
                         emp_id=employee.id,
-                        # client_id=client.id,
+                        dealer_name=dealer.id,
                         project_id=project.id,
 
                         state=state_id,

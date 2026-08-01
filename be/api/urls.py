@@ -44,7 +44,7 @@ urlpatterns = [
     path('app-notification-history/', app_notification_history_api),
     path('app-notification-history/<int:id>/', app_notification_history_api),
     path('setting/', settings_api),
-    path('uploadTaskExcel/', uploadTaskExcel),
+    path('uploadTaskExcel/<int:id>/', uploadTaskExcel),
     path("dashboard/", dashboard_api),
     path('delete-all-records/', delete_all_records, name='delete_all_records'),
 ]

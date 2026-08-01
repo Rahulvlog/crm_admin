@@ -12,9 +12,26 @@ def dashboard_api(request):
     user_id = request.GET.get("user_id")
     dealer_id = request.GET.get("dealer_id")
     manager_id = request.GET.get("manager_id")
+    state_id = request.GET.get("state_id")
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
 
     tasks = TasksRecord.objects.all()
     activities = ActivityRecord.objects.all()
+
+    if state_id:
+        tasks = tasks.filter(state=state_id)
+        state_task_ids = tasks.values_list("id", flat=True)
+        activities = activities.filter(task_id__in=state_task_ids)
+
+    if start_date and end_date:
+        tasks = tasks.filter(
+            created_date__date__range=[start_date, end_date]
+        )
+
+        activities = activities.filter(
+            created_date__date__range=[start_date, end_date]
+        )
 
     # Filter by Employee
     if user_id:

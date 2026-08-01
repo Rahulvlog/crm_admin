@@ -26,6 +26,12 @@ def uploadTaskExcel(request, id=None):
                 "status": False,
                 "message": "Please upload an Excel file."
             })
+        
+        if not id:
+            return Response({
+                "status": False,
+                "message": "Id not found."
+            })
             
 
         try:
@@ -55,6 +61,7 @@ def uploadTaskExcel(request, id=None):
                     project_name = str(row.get("Project Name", "")).strip()
 
                     project, _ = ProjectMaster.objects.get_or_create(
+                        manager_id=id,
                         title=project_name,
                     )
 
@@ -95,9 +102,9 @@ def uploadTaskExcel(request, id=None):
                     # Dealer
                     #########################################
 
-                    dealer_name = str(row.get("Dealer Name", "")).strip()
-                    dealer_mobile = str(row.get("Dealer Login ID", "")).strip()
-                    dealer_password = str(row.get("Dealer Password", "")).strip()
+                    dealer_name = str(row.get("Dealer", "")).strip()
+                    dealer_mobile = str(row.get("Client Login ID", "")).strip()
+                    dealer_password = str(row.get("Client Pasward", "")).strip()
 
                     dealer, _ = AppUsers.objects.get_or_create(
                         mobile_no=dealer_mobile,
@@ -146,6 +153,7 @@ def uploadTaskExcel(request, id=None):
                         emp_id=employee.id,
                         dealer_name=dealer.id,
                         project_id=project.id,
+                        client_id=id,
 
                         state=state_id,
                         city=city_id,

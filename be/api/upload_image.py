@@ -63,3 +63,46 @@ def upload_image_api(request):
             "status": False,
             "message": str(e)
         })
+
+
+@api_view(['POST'])
+def upload_profile_image_api(request):
+    try:
+        image = request.FILES.get('image')
+
+        if not image:
+            return Response({
+                "status": False,
+                "message": "Image file is required"
+            })
+
+        # media/profile folder
+        upload_path = os.path.join(
+            settings.MEDIA_ROOT,
+            'profile'
+        )
+
+        # Create folder if it doesn't exist
+        os.makedirs(upload_path, exist_ok=True)
+
+        # Save image
+        fs = FileSystemStorage(location=upload_path)
+        filename = fs.save(image.name, image)
+
+        # Image URL
+        image_url = request.build_absolute_uri(
+            f"{settings.MEDIA_URL}profile/{filename}"
+        )
+
+        return Response({
+            "status": True,
+            "message": "Profile image uploaded successfully",
+            "image_name": filename,
+            "image_url": image_url
+        })
+
+    except Exception as e:
+        return Response({
+            "status": False,
+            "message": str(e)
+        })

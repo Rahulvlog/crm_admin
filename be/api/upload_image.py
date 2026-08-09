@@ -68,7 +68,14 @@ def upload_image_api(request):
 @api_view(['POST'])
 def upload_profile_image_api(request):
     try:
+        user_id = request.data.get('user_id')
         image = request.FILES.get('image')
+
+        if not user_id:
+            return Response({
+                "status": False,
+                "message": "user_id is required"
+            })
 
         if not image:
             return Response({
@@ -82,12 +89,27 @@ def upload_profile_image_api(request):
             'profile'
         )
 
-        # Create folder if it doesn't exist
         os.makedirs(upload_path, exist_ok=True)
+
+        # Original image name
+        original_name = image.name
+
+        # Name and extension separate
+        name, extension = os.path.splitext(original_name)
+
+        # Add user_id before extension
+        filename = f"{name}_{user_id}{extension}"
 
         # Save image
         fs = FileSystemStorage(location=upload_path)
-        filename = fs.save(image.name, image)
+
+        # Replace existing file if same name exists
+        file_path = os.path.join(upload_path, filename)
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        fs.save(filename, image)
 
         # Image URL
         image_url = request.build_absolute_uri(
@@ -97,6 +119,7 @@ def upload_profile_image_api(request):
         return Response({
             "status": True,
             "message": "Profile image uploaded successfully",
+            "user_id": user_id,
             "image_name": filename,
             "image_url": image_url
         })
@@ -106,3 +129,4 @@ def upload_profile_image_api(request):
             "status": False,
             "message": str(e)
         })
+

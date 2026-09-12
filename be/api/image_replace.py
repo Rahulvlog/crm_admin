@@ -1,5 +1,6 @@
 import os
 import json
+import ast
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
@@ -29,9 +30,10 @@ def replace_image(request):
 
         activity = ActivityRecord.objects.get(id=print_id)
 
-        photos = json.loads(activity.photo or "[]")
+        # Get photo data
+        photo_data = activity.photo
 
-        if not photos:
+        if not photo_data:
             return Response(
                 {
                     "status": False,
@@ -40,8 +42,37 @@ def replace_image(request):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        # Convert photo field into Python list
+        try:
+            photos = json.loads(photo_data)
+        except json.JSONDecodeError:
+            try:
+                photos = ast.literal_eval(photo_data)
+            except (ValueError, SyntaxError):
+                return Response(
+                    {
+                        "status": False,
+                        "message": "Invalid photo data stored in database",
+                        "photo_data": str(photo_data)
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        if not isinstance(photos, list):
+            return Response(
+                {
+                    "status": False,
+                    "message": "Photo data must be a list"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Find image
         index = next(
-            (i for i, img in enumerate(photos) if image_name in img),
+            (
+                i for i, img in enumerate(photos)
+                if image_name in str(img)
+            ),
             None
         )
 
@@ -56,6 +87,7 @@ def replace_image(request):
 
         old_image_url = photos[index]
 
+        # Extract folder
         try:
             folder_name = old_image_url.split("/uploads/")[1].split("/")[0]
         except Exception:
@@ -77,25 +109,32 @@ def replace_image(request):
 
         # Delete old image
         old_filename = old_image_url.split("/")[-1]
-        old_file_path = os.path.join(upload_path, old_filename)
+        old_file_path = os.path.join(
+            upload_path,
+            old_filename
+        )
 
         if os.path.exists(old_file_path):
             os.remove(old_file_path)
 
-        # Save new image in same folder
+        # Save new image
         fs = FileSystemStorage(location=upload_path)
 
-        filename = fs.save(new_image.name, new_image)
+        filename = fs.save(
+            new_image.name,
+            new_image
+        )
 
         new_url = request.build_absolute_uri(
             f"{settings.MEDIA_URL}uploads/{folder_name}/{filename}"
         )
 
-        # Replace image URL in array
+        # Replace URL
         photos[index] = new_url
 
+        # IMPORTANT: Always save valid JSON
         activity.photo = json.dumps(photos)
-        activity.save()
+        activity.save(update_fields=["photo"])
 
         return Response(
             {
@@ -114,15 +153,6 @@ def replace_image(request):
                 "message": "Activity record not found"
             },
             status=status.HTTP_404_NOT_FOUND
-        )
-
-    except json.JSONDecodeError:
-        return Response(
-            {
-                "status": False,
-                "message": "Invalid photo JSON data"
-            },
-            status=status.HTTP_400_BAD_REQUEST
         )
 
     except Exception as e:

@@ -12,6 +12,12 @@ USER_ID_KEYS = (
     "manager_id",
     "sender_id",
 )
+HEADER_USER_ID_KEYS = (
+    "x-user-id",
+    "user-id",
+    "x-userid",
+    "userid",
+)
 
 
 def _parse_user_id(value):
@@ -46,6 +52,13 @@ def _get_user_id_candidates(request, route_user_id=None):
         parsed_query_value = _parse_user_id(query_value)
         if parsed_query_value:
             candidates.append(parsed_query_value)
+
+    request_headers = getattr(request, "headers", {})
+    for key in HEADER_USER_ID_KEYS:
+        header_value = request_headers.get(key)
+        parsed_header_value = _parse_user_id(header_value)
+        if parsed_header_value:
+            candidates.append(parsed_header_value)
 
     deduped_candidates = []
     seen = set()

@@ -7,6 +7,7 @@ from django.urls import path
 from api.activity_record import activity_record_api
 from api.app_notification import app_notification_history_api
 from api.auth import app_users_api
+from api.body_data import body_data_api
 from api.dashboard import dashboard_api
 from api.del_data import delete_all_records
 from api.import_excel import uploadTaskExcel
@@ -29,6 +30,7 @@ urlpatterns = [
     path('upload-image/', upload_image_api),
     path('profile-image/', upload_profile_image_api),
     path('replace-image/', replace_image),
+    path('body-data/', body_data_api),
     path('login/', login_api),
     path('app-users/', app_users_api),
     path('app-users/<int:id>/', app_users_api),

@@ -19,6 +19,9 @@ def login_api(request):
         ).first()
 
         if user:
+            if user.force_relogin:
+                user.force_relogin = 0
+                user.save(update_fields=['force_relogin'])
 
             serializer = GetAppUsersSerializer(user)
 

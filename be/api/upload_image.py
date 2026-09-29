@@ -3,10 +3,15 @@ from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from .session_guard import enforce_force_relogin
 
 
 @api_view(['GET'])
 def upload_image_api(request):
+    blocked_response = enforce_force_relogin(request)
+    if blocked_response:
+        return blocked_response
+
     try:
 
         task_id = request.query_params.get('task_id')
@@ -67,6 +72,10 @@ def upload_image_api(request):
 
 @api_view(['POST'])
 def upload_profile_image_api(request):
+    blocked_response = enforce_force_relogin(request)
+    if blocked_response:
+        return blocked_response
+
     try:
         user_id = request.data.get('user_id')
         image = request.FILES.get('image')
@@ -129,4 +138,3 @@ def upload_profile_image_api(request):
             "status": False,
             "message": str(e)
         })
-

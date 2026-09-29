@@ -4,10 +4,14 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import StateMaster
 from .serializers import StateMasterSerializer
+from .session_guard import enforce_force_relogin
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def state_master_api(request, id=None):
+    blocked_response = enforce_force_relogin(request, route_user_id=id)
+    if blocked_response:
+        return blocked_response
 
     # =========================
     # GET API
@@ -127,6 +131,9 @@ from .serializers import CityMasterSerializer, GetCityMasterSerializer
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def city_master_api(request, id=None):
+    blocked_response = enforce_force_relogin(request, route_user_id=id)
+    if blocked_response:
+        return blocked_response
 
     # =========================
     # GET API

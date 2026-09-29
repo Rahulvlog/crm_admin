@@ -2,10 +2,14 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import AppUsers
 from .serializers import AppUsersSerializer, GetAppUsersSerializer
+from .session_guard import enforce_force_relogin, PRIVILEGED_ROLES
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def app_users_api(request, id=None):
+    blocked_response = enforce_force_relogin(request, route_user_id=id)
+    if blocked_response:
+        return blocked_response
 
     # =========================
     # GET API
@@ -77,6 +81,11 @@ def app_users_api(request, id=None):
                 "message": "User not found"
             })
 
+        password_updated = (
+            request.data.get('password') is not None
+            and str(request.data.get('password')) != str(user.password)
+        )
+
         serializer = AppUsersSerializer(
             user,
             data=request.data,
@@ -85,7 +94,13 @@ def app_users_api(request, id=None):
 
         if serializer.is_valid():
 
-            serializer.save()
+            updated_user = serializer.save()
+
+            if password_updated:
+                normalized_role = str(updated_user.role_type).strip().lower()
+                if normalized_role in PRIVILEGED_ROLES:
+                    updated_user.force_relogin = 1
+                    updated_user.save(update_fields=['force_relogin'])
 
             return Response({
                 "status": True,

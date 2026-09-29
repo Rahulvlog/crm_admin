@@ -42,6 +42,7 @@ class AppUsers(models.Model):
     working_hrs = models.TimeField(null=True, blank=True)
     is_overtime_allowed = models.IntegerField(null=True, blank=True)
     status = models.IntegerField(default=0)
+    force_relogin = models.IntegerField(default=0)
     latitude = models.CharField(max_length=250, default='0')
     longitude = models.CharField(max_length=250, default='0')
     updated_date = models.DateTimeField(auto_now=True)

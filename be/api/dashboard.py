@@ -2,12 +2,16 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import AppUsers, TasksRecord, ActivityRecord
 from django.db.models import Sum
+from .session_guard import enforce_force_relogin
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 @api_view(['GET'])
 def dashboard_api(request):
+    blocked_response = enforce_force_relogin(request)
+    if blocked_response:
+        return blocked_response
 
     user_id = request.GET.get("user_id")
     dealer_id = request.GET.get("dealer_id")

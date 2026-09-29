@@ -7,12 +7,17 @@ from django.core.files.storage import FileSystemStorage
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from .session_guard import enforce_force_relogin
 
 from .models import ActivityRecord
 
 
 @api_view(["PUT"])
 def replace_image(request):
+    blocked_response = enforce_force_relogin(request)
+    if blocked_response:
+        return blocked_response
+
     try:
         # ---------------------------------------------------------
         # 1. Get request data

@@ -12,11 +12,16 @@ from .models import (
     StateMaster,
     CityMaster,
 )
+from .session_guard import enforce_force_relogin
 
 
 # class UploadTaskExcel(APIView):
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def uploadTaskExcel(request, id=None):
+    blocked_response = enforce_force_relogin(request, route_user_id=id)
+    if blocked_response:
+        return blocked_response
+
     if request.method == 'POST':
 
         file = request.FILES.get("file")

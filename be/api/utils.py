@@ -4,10 +4,14 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Setting
 from .serializers import SettingMasterSerializer
+from .session_guard import enforce_force_relogin
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def settings_api(request, id=None):
+    blocked_response = enforce_force_relogin(request, route_user_id=id)
+    if blocked_response:
+        return blocked_response
 
     # =========================
     # GET API

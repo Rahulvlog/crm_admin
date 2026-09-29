@@ -1,9 +1,14 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import TasksRecord, ActivityRecord, ProjectMaster
+from .session_guard import enforce_force_relogin
 
 @api_view(['DELETE'])
 def delete_all_records(request):
+    blocked_response = enforce_force_relogin(request)
+    if blocked_response:
+        return blocked_response
+
     try:
         # Delete child table first (if foreign keys exist)
         activity_count, _ = ActivityRecord.objects.all().delete()

@@ -24,17 +24,6 @@ META_USER_ID_KEYS = (
     "HTTP_X_USERID",
     "HTTP_USERID",
 )
-ROLE_KEYS = (
-    "x-user-role",
-    "user-role",
-    "role",
-    "role_type",
-)
-META_ROLE_KEYS = (
-    "HTTP_X_USER_ROLE",
-    "HTTP_USER_ROLE",
-    "HTTP_ROLE",
-)
 
 
 def _parse_user_id(value):
@@ -96,40 +85,8 @@ def _get_user_id_candidates(request, route_user_id=None):
     return deduped_candidates
 
 
-def _extract_role_hint(request):
-    request_headers = getattr(request, "headers", {})
-    for key in ROLE_KEYS:
-        header_role = request_headers.get(key)
-        if header_role:
-            return str(header_role).strip().lower()
-
-    if hasattr(request, "data"):
-        for key in ROLE_KEYS:
-            data_role = request.data.get(key)
-            if data_role:
-                return str(data_role).strip().lower()
-
-    request_meta = getattr(request, "META", {})
-    for key in META_ROLE_KEYS:
-        meta_role = request_meta.get(key)
-        if meta_role:
-            return str(meta_role).strip().lower()
-
-    return None
-
-
 def enforce_force_relogin(request, route_user_id=None):
     user_id_candidates = _get_user_id_candidates(request, route_user_id=route_user_id)
-    role_hint = _extract_role_hint(request)
-
-    if not user_id_candidates and role_hint in PRIVILEGED_ROLES:
-        return Response(
-            {
-                "status": False,
-                "message": "Session expired. Please login again.",
-            },
-            status=status.HTTP_401_UNAUTHORIZED,
-        )
 
     for user_id in user_id_candidates:
         user = AppUsers.objects.filter(id=user_id).first()

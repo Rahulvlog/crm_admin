@@ -1,13 +1,20 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.utils import timezone
+
 from .models import AppUsers
+from .models import UserSession
 from .serializers import AppUsersSerializer, GetAppUsersSerializer
 from .session_guard import enforce_force_relogin, PRIVILEGED_ROLES
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def app_users_api(request, id=None):
-    blocked_response = enforce_force_relogin(request, route_user_id=id)
+    blocked_response = enforce_force_relogin(
+        request,
+        route_user_id=id,
+        include_route_user_id=True,
+    )
     if blocked_response:
         return blocked_response
 
@@ -100,7 +107,12 @@ def app_users_api(request, id=None):
                 normalized_role = str(updated_user.role_type).strip().lower()
                 if normalized_role in PRIVILEGED_ROLES:
                     updated_user.force_relogin = 1
-                    updated_user.save(update_fields=['force_relogin'])
+                    updated_user.password_changed_at = timezone.now()
+                    updated_user.save(update_fields=['force_relogin', 'password_changed_at'])
+                    UserSession.objects.filter(
+                        user_id=updated_user.id,
+                        is_active=True,
+                    ).update(is_active=False)
 
             return Response({
                 "status": True,

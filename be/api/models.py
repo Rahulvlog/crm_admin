@@ -43,6 +43,7 @@ class AppUsers(models.Model):
     is_overtime_allowed = models.IntegerField(null=True, blank=True)
     status = models.IntegerField(default=0)
     force_relogin = models.IntegerField(default=0)
+    password_changed_at = models.DateTimeField(null=True, blank=True)
     latitude = models.CharField(max_length=250, default='0')
     longitude = models.CharField(max_length=250, default='0')
     updated_date = models.DateTimeField(auto_now=True)
@@ -50,6 +51,24 @@ class AppUsers(models.Model):
 
     class Meta:
         db_table = 'app_users'
+        managed = True
+
+
+class UserSession(models.Model):
+
+    user = models.ForeignKey(
+        AppUsers,
+        on_delete=models.CASCADE,
+        related_name='sessions',
+    )
+    session_token = models.CharField(max_length=128, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'user_sessions'
         managed = True
 
 

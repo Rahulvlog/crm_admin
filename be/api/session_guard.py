@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from .models import AppUsers
+from .models import AppUsers, UserSession
 
 
 PRIVILEGED_ROLES = {"manager", "sub_admin"}
@@ -24,6 +24,17 @@ META_USER_ID_KEYS = (
     "HTTP_X_USERID",
     "HTTP_USERID",
 )
+SESSION_TOKEN_KEYS = (
+    "x-session-token",
+    "session-token",
+    "x-sessiontoken",
+    "session_token",
+)
+META_SESSION_TOKEN_KEYS = (
+    "HTTP_X_SESSION_TOKEN",
+    "HTTP_SESSION_TOKEN",
+    "HTTP_X_SESSIONTOKEN",
+)
 
 
 def _parse_user_id(value):
@@ -41,12 +52,13 @@ def _parse_user_id(value):
     return parsed_value
 
 
-def _get_user_id_candidates(request, route_user_id=None):
+def _get_user_id_candidates(request, route_user_id=None, include_route_user_id=False):
     candidates = []
 
-    route_id = _parse_user_id(route_user_id)
-    if route_id:
-        candidates.append(route_id)
+    if include_route_user_id:
+        route_id = _parse_user_id(route_user_id)
+        if route_id:
+            candidates.append(route_id)
 
     for key in USER_ID_KEYS:
         data_value = request.data.get(key) if hasattr(request, "data") else None
@@ -85,8 +97,42 @@ def _get_user_id_candidates(request, route_user_id=None):
     return deduped_candidates
 
 
-def enforce_force_relogin(request, route_user_id=None):
-    user_id_candidates = _get_user_id_candidates(request, route_user_id=route_user_id)
+def _get_session_token(request):
+    request_headers = getattr(request, "headers", {})
+    for key in SESSION_TOKEN_KEYS:
+        token = request_headers.get(key)
+        if token:
+            return str(token).strip()
+
+    request_meta = getattr(request, "META", {})
+    for key in META_SESSION_TOKEN_KEYS:
+        token = request_meta.get(key)
+        if token:
+            return str(token).strip()
+
+    if hasattr(request, "data"):
+        for key in ("session_token", "x_session_token"):
+            token = request.data.get(key)
+            if token:
+                return str(token).strip()
+
+    query_token = request.query_params.get("session_token")
+    if query_token:
+        return str(query_token).strip()
+
+    return None
+
+
+def enforce_force_relogin(request, route_user_id=None, include_route_user_id=False):
+    user_id_candidates = _get_user_id_candidates(
+        request,
+        route_user_id=route_user_id,
+        include_route_user_id=include_route_user_id,
+    )
+    if not user_id_candidates:
+        return None
+
+    session_token = _get_session_token(request)
 
     for user_id in user_id_candidates:
         user = AppUsers.objects.filter(id=user_id).first()
@@ -94,7 +140,42 @@ def enforce_force_relogin(request, route_user_id=None):
             continue
 
         normalized_role = str(user.role_type).strip().lower()
-        if normalized_role in PRIVILEGED_ROLES and user.force_relogin:
+        if normalized_role not in PRIVILEGED_ROLES:
+            continue
+
+        if not session_token:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Session expired. Please login again.",
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        active_session = UserSession.objects.filter(
+            user_id=user.id,
+            session_token=session_token,
+            is_active=True,
+        ).first()
+        if not active_session:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Session expired. Please login again.",
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if user.password_changed_at and active_session.created_at <= user.password_changed_at:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Session expired. Please login again.",
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if user.force_relogin:
             return Response(
                 {
                     "status": False,

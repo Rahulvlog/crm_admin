@@ -148,23 +148,6 @@ def enforce_force_relogin(request, route_user_id=None, include_route_user_id=Fal
     if not user_id_candidates:
         return None
 
-
-def get_request_actor(request):
-        actor_user_id = _get_actor_user_id(request)
-        if not actor_user_id:
-            return None
-
-        return AppUsers.objects.filter(id=actor_user_id).first()
-
-
-def get_sub_admin_assigned_state_ids(sub_admin_user_id):
-        if not sub_admin_user_id:
-            return []
-
-        return list(
-            SubAdminStateAssignment.objects.filter(sub_admin_id=sub_admin_user_id).values_list("state_id", flat=True)
-        )
-
     session_token = _get_session_token(request)
 
     for user_id in user_id_candidates:
@@ -218,3 +201,20 @@ def get_sub_admin_assigned_state_ids(sub_admin_user_id):
             )
 
     return None
+
+
+def get_request_actor(request):
+    actor_user_id = _get_actor_user_id(request)
+    if not actor_user_id:
+        return None
+
+    return AppUsers.objects.filter(id=actor_user_id).first()
+
+
+def get_sub_admin_assigned_state_ids(sub_admin_user_id):
+    if not sub_admin_user_id:
+        return []
+
+    return list(
+        SubAdminStateAssignment.objects.filter(sub_admin_id=sub_admin_user_id).values_list("state_id", flat=True)
+    )

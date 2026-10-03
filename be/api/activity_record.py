@@ -2,6 +2,7 @@
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.core.paginator import Paginator
 from .models import ActivityRecord, TasksRecord
 from .serializers import ActivityRecordSerializer, GetActivityRecordSerializer
 from .session_guard import enforce_force_relogin, get_request_actor, get_sub_admin_assigned_state_ids
@@ -62,14 +63,44 @@ def activity_record_api(request, id=None):
                 "data": serializer.data
             })
 
-        # All Data
+        # All Data (Paginated)
         activities = activities.order_by('-id')
 
-        serializer = GetActivityRecordSerializer(activities, many=True)
+        try:
+            page = int(request.query_params.get('page', 1))
+        except (TypeError, ValueError):
+            page = 1
+
+        try:
+            page_size = int(request.query_params.get('page_size', 20))
+        except (TypeError, ValueError):
+            page_size = 20
+
+        if page < 1:
+            page = 1
+
+        if page_size < 1:
+            page_size = 20
+
+        if page_size > 100:
+            page_size = 100
+
+        paginator = Paginator(activities, page_size)
+        paginated_activities = paginator.get_page(page)
+
+        serializer = GetActivityRecordSerializer(paginated_activities.object_list, many=True)
 
         return Response({
             "status": True,
-            "data": serializer.data
+            "data": serializer.data,
+            "pagination": {
+                "page": paginated_activities.number,
+                "page_size": page_size,
+                "total_pages": paginator.num_pages,
+                "total_records": paginator.count,
+                "has_next": paginated_activities.has_next(),
+                "has_previous": paginated_activities.has_previous(),
+            }
         })
 
     #

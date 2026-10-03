@@ -2,9 +2,9 @@
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import ProjectMaster
+from .models import ProjectMaster, TasksRecord
 from .serializers import ProjectMasterSerializer, GetProjectMasterSerializer
-from .session_guard import enforce_force_relogin
+from .session_guard import enforce_force_relogin, get_request_actor, get_sub_admin_assigned_state_ids
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -22,6 +22,13 @@ def project_master_api(request, id=None):
 
         # Base queryset
         projects = ProjectMaster.objects.all()
+        actor = get_request_actor(request)
+        if actor and str(actor.role_type).strip().lower() == "sub_admin":
+            assigned_state_ids = get_sub_admin_assigned_state_ids(actor.id)
+            project_ids = TasksRecord.objects.filter(
+                state__in=assigned_state_ids
+            ).values_list('project_id', flat=True).distinct()
+            projects = projects.filter(id__in=project_ids)
 
         # Filter by manager_id if provided
         if manager_id is not None:

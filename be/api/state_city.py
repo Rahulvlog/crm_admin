@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import StateMaster
 from .serializers import StateMasterSerializer
-from .session_guard import enforce_force_relogin
+from .session_guard import enforce_force_relogin, get_request_actor, get_sub_admin_assigned_state_ids
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -17,6 +17,9 @@ def state_master_api(request, id=None):
     # GET API
     # =========================
     if request.method == 'GET':
+        actor = get_request_actor(request)
+        is_sub_admin = actor and str(actor.role_type).strip().lower() == "sub_admin"
+        assigned_state_ids = get_sub_admin_assigned_state_ids(actor.id) if is_sub_admin else []
 
         # Single Data
         if id:
@@ -30,6 +33,12 @@ def state_master_api(request, id=None):
                     "message": "State not found"
                 })
 
+            if is_sub_admin and state.id not in assigned_state_ids:
+                return Response({
+                    "status": False,
+                    "message": "State not found"
+                })
+
             serializer = StateMasterSerializer(state)
 
             return Response({
@@ -38,7 +47,10 @@ def state_master_api(request, id=None):
             })
 
         # All Data
-        states = StateMaster.objects.all().order_by('-id')
+        states = StateMaster.objects.all()
+        if is_sub_admin:
+            states = states.filter(id__in=assigned_state_ids)
+        states = states.order_by('-id')
 
         serializer = StateMasterSerializer(states, many=True)
 
@@ -139,6 +151,9 @@ def city_master_api(request, id=None):
     # GET API
     # =========================
     if request.method == 'GET':
+        actor = get_request_actor(request)
+        is_sub_admin = actor and str(actor.role_type).strip().lower() == "sub_admin"
+        assigned_state_ids = get_sub_admin_assigned_state_ids(actor.id) if is_sub_admin else []
 
         # Single Data
         if id:
@@ -152,6 +167,12 @@ def city_master_api(request, id=None):
                     "message": "City not found"
                 })
 
+            if is_sub_admin and city.state_id not in assigned_state_ids:
+                return Response({
+                    "status": False,
+                    "message": "City not found"
+                })
+
             serializer = GetCityMasterSerializer(city)
 
             return Response({
@@ -160,7 +181,10 @@ def city_master_api(request, id=None):
             })
 
         # All Data
-        cities = CityMaster.objects.all().order_by('-id')
+        cities = CityMaster.objects.all()
+        if is_sub_admin:
+            cities = cities.filter(state_id__in=assigned_state_ids)
+        cities = cities.order_by('-id')
 
         serializer = GetCityMasterSerializer(cities, many=True)
 

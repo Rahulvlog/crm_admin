@@ -85,6 +85,29 @@ class StateMaster(models.Model):
         db_table = 'state_master'
         managed = True
 
+
+class SubAdminStateAssignment(models.Model):
+
+    sub_admin = models.ForeignKey(
+        AppUsers,
+        on_delete=models.CASCADE,
+        related_name='assigned_states',
+    )
+    state = models.ForeignKey(
+        StateMaster,
+        on_delete=models.CASCADE,
+        related_name='sub_admin_assignments',
+    )
+    assigned_by = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'sub_admin_state_assignments'
+        managed = True
+        unique_together = ('sub_admin', 'state')
+
+
 class CityMaster(models.Model):
 
     name = models.CharField(max_length=250)

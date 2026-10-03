@@ -5,7 +5,12 @@ from django.utils import timezone
 from .models import AppUsers
 from .models import UserSession
 from .serializers import AppUsersSerializer, GetAppUsersSerializer
-from .session_guard import enforce_force_relogin, PRIVILEGED_ROLES
+from .session_guard import (
+    enforce_force_relogin,
+    PRIVILEGED_ROLES,
+    get_request_actor,
+    get_sub_admin_assigned_state_ids,
+)
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -22,6 +27,9 @@ def app_users_api(request, id=None):
     # GET API
     # =========================
     if request.method == 'GET':
+        actor = get_request_actor(request)
+        is_sub_admin = actor and str(actor.role_type).strip().lower() == "sub_admin"
+        assigned_state_ids = get_sub_admin_assigned_state_ids(actor.id) if is_sub_admin else []
 
         # Single Data
         if id:
@@ -30,6 +38,12 @@ def app_users_api(request, id=None):
                 user = AppUsers.objects.get(id=id)
 
             except AppUsers.DoesNotExist:
+                return Response({
+                    "status": False,
+                    "message": "User not found"
+                })
+
+            if is_sub_admin and user.state not in assigned_state_ids:
                 return Response({
                     "status": False,
                     "message": "User not found"
@@ -44,6 +58,8 @@ def app_users_api(request, id=None):
 
         # All Data
         users = AppUsers.objects.all()
+        if is_sub_admin:
+            users = users.filter(state__in=assigned_state_ids)
 
         serializer = GetAppUsersSerializer(users, many=True)
 

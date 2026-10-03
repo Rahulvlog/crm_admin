@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from .models import AppUsers, UserSession
+from .models import AppUsers, UserSession, SubAdminStateAssignment
 
 
 PRIVILEGED_ROLES = {"manager", "sub_admin"}
@@ -50,6 +50,22 @@ def _parse_user_id(value):
         return None
 
     return parsed_value
+
+
+def _get_actor_user_id(request):
+    request_headers = getattr(request, "headers", {})
+    for key in HEADER_USER_ID_KEYS:
+        parsed_header_value = _parse_user_id(request_headers.get(key))
+        if parsed_header_value:
+            return parsed_header_value
+
+    request_meta = getattr(request, "META", {})
+    for key in META_USER_ID_KEYS:
+        parsed_meta_value = _parse_user_id(request_meta.get(key))
+        if parsed_meta_value:
+            return parsed_meta_value
+
+    return None
 
 
 def _get_user_id_candidates(request, route_user_id=None, include_route_user_id=False):
@@ -131,6 +147,23 @@ def enforce_force_relogin(request, route_user_id=None, include_route_user_id=Fal
     )
     if not user_id_candidates:
         return None
+
+
+def get_request_actor(request):
+        actor_user_id = _get_actor_user_id(request)
+        if not actor_user_id:
+            return None
+
+        return AppUsers.objects.filter(id=actor_user_id).first()
+
+
+def get_sub_admin_assigned_state_ids(sub_admin_user_id):
+        if not sub_admin_user_id:
+            return []
+
+        return list(
+            SubAdminStateAssignment.objects.filter(sub_admin_id=sub_admin_user_id).values_list("state_id", flat=True)
+        )
 
     session_token = _get_session_token(request)
 

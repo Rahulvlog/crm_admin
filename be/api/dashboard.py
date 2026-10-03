@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import AppUsers, TasksRecord, ActivityRecord
 from django.db.models import Sum
-from .session_guard import enforce_force_relogin
+from .session_guard import enforce_force_relogin, get_request_actor, get_sub_admin_assigned_state_ids
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -22,6 +22,14 @@ def dashboard_api(request):
 
     tasks = TasksRecord.objects.all()
     activities = ActivityRecord.objects.all()
+    users_scope = AppUsers.objects.all()
+
+    actor = get_request_actor(request)
+    if actor and str(actor.role_type).strip().lower() == "sub_admin":
+        assigned_state_ids = get_sub_admin_assigned_state_ids(actor.id)
+        tasks = tasks.filter(state__in=assigned_state_ids)
+        activities = activities.filter(state__in=assigned_state_ids)
+        users_scope = users_scope.filter(state__in=assigned_state_ids)
 
     if state_id:
         tasks = tasks.filter(state=state_id)
@@ -68,9 +76,9 @@ def dashboard_api(request):
 
     data = {
         # Users (Global)
-        "total_user": AppUsers.objects.count(),
-        "total_dealer": AppUsers.objects.filter(role_type="Dealer").count(),
-        "total_employee": AppUsers.objects.filter(role_type="User").count(),
+        "total_user": users_scope.count(),
+        "total_dealer": users_scope.filter(role_type="Dealer").count(),
+        "total_employee": users_scope.filter(role_type="User").count(),
 
         # Tasks
         "total_task": tasks.count(),

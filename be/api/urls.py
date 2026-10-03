@@ -19,6 +19,7 @@ from api.state_city import city_master_api, state_master_api
 from api.task_record import tasks_record_api
 from api.upload_image import upload_image_api, upload_profile_image_api
 from api.image_replace import replace_image
+from api.sub_admin_state_assignment import sub_admin_state_assignment_api
 from . import views
 from .client_master import client_api
 
@@ -52,4 +53,5 @@ urlpatterns = [
     path('uploadTaskExcel/<int:id>/', uploadTaskExcel),
     path("dashboard/", dashboard_api),
     path('delete-all-records/', delete_all_records, name='delete_all_records'),
+    path('sub-admin-state-assignment/', sub_admin_state_assignment_api),
 ]

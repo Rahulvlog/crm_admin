@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import TasksRecord
 from .serializers import TasksRecordSerializer, GetTasksRecordSerializer
-from .session_guard import enforce_force_relogin
+from .session_guard import enforce_force_relogin, get_request_actor, get_sub_admin_assigned_state_ids
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -20,6 +20,10 @@ def tasks_record_api(request, id=None):
 
         # Base queryset
         tasks = TasksRecord.objects.all()
+        actor = get_request_actor(request)
+        if actor and str(actor.role_type).strip().lower() == "sub_admin":
+            assigned_state_ids = get_sub_admin_assigned_state_ids(actor.id)
+            tasks = tasks.filter(state__in=assigned_state_ids)
 
         # Query params
         emp_id = request.query_params.get('user_id', None)

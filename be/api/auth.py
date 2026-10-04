@@ -25,7 +25,6 @@ def app_users_api(request, id=None):
     if request.method == 'GET':
         actor = get_request_actor(request)
         is_sub_admin = actor and str(actor.role_type).strip().lower() == "sub_admin"
-        assigned_state_ids = get_sub_admin_assigned_state_ids(actor.id) if is_sub_admin else []
 
         # Single Data
         if id:
@@ -39,10 +38,7 @@ def app_users_api(request, id=None):
                     "message": "User not found"
                 })
 
-            if is_sub_admin and (
-                user.state not in assigned_state_ids
-                or str(user.role_type).strip().lower() == "manager"
-            ):
+            if is_sub_admin and str(user.role_type).strip().lower() == "manager":
                 return Response({
                     "status": False,
                     "message": "User not found"
@@ -58,7 +54,7 @@ def app_users_api(request, id=None):
         # All Data
         users = AppUsers.objects.all()
         if is_sub_admin:
-            users = users.filter(state__in=assigned_state_ids).exclude(role_type__iexact="Manager")
+            users = users.exclude(role_type__iexact="Manager")
 
         serializer = GetAppUsersSerializer(users, many=True)
 

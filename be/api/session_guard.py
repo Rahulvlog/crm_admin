@@ -218,3 +218,20 @@ def get_sub_admin_assigned_state_ids(sub_admin_user_id):
     return list(
         SubAdminStateAssignment.objects.filter(sub_admin_id=sub_admin_user_id).values_list("state_id", flat=True)
     )
+
+
+def get_actor_accessible_state_ids(actor):
+    if not actor:
+        return None
+
+    normalized_role = str(actor.role_type).strip().lower()
+    if normalized_role == "sub_admin":
+        return get_sub_admin_assigned_state_ids(actor.id)
+
+    if normalized_role == "client":
+        actor_state_id = _parse_user_id(actor.state)
+        if actor_state_id:
+            return [actor_state_id]
+        return []
+
+    return None

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from django.core.paginator import Paginator
 from .models import ActivityRecord, TasksRecord
 from .serializers import ActivityRecordSerializer, GetActivityRecordSerializer
-from .session_guard import enforce_force_relogin, get_request_actor, get_sub_admin_assigned_state_ids
+from .session_guard import enforce_force_relogin, get_request_actor, get_actor_accessible_state_ids
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -22,10 +22,10 @@ def activity_record_api(request, id=None):
         # Base queryset
         activities = ActivityRecord.objects.all()
         actor = get_request_actor(request)
-        if actor and str(actor.role_type).strip().lower() == "sub_admin":
-            assigned_state_ids = get_sub_admin_assigned_state_ids(actor.id)
+        accessible_state_ids = get_actor_accessible_state_ids(actor)
+        if accessible_state_ids is not None:
             assigned_task_ids = TasksRecord.objects.filter(
-                state__in=assigned_state_ids
+                state__in=accessible_state_ids
             ).values_list('id', flat=True)
             activities = activities.filter(task_id__in=assigned_task_ids)
 

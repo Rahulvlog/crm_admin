@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import AppUsers, TasksRecord, ActivityRecord
 from django.db.models import Sum
-from .session_guard import enforce_force_relogin, get_request_actor, get_sub_admin_assigned_state_ids
+from .session_guard import enforce_force_relogin, get_request_actor, get_actor_accessible_state_ids
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -25,11 +25,12 @@ def dashboard_api(request):
     users_scope = AppUsers.objects.all()
 
     actor = get_request_actor(request)
-    if actor and str(actor.role_type).strip().lower() == "sub_admin":
-        assigned_state_ids = get_sub_admin_assigned_state_ids(actor.id)
-        tasks = tasks.filter(state__in=assigned_state_ids)
-        activities = activities.filter(state__in=assigned_state_ids)
-        users_scope = users_scope.filter(state__in=assigned_state_ids)
+    accessible_state_ids = get_actor_accessible_state_ids(actor)
+    if accessible_state_ids is not None:
+        tasks = tasks.filter(state__in=accessible_state_ids)
+        task_ids_for_states = tasks.values_list("id", flat=True)
+        activities = activities.filter(task_id__in=task_ids_for_states)
+        users_scope = users_scope.filter(state__in=accessible_state_ids)
 
     if state_id:
         tasks = tasks.filter(state=state_id)

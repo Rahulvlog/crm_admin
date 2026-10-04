@@ -24,7 +24,10 @@ def activity_record_api(request, id=None):
         actor = get_request_actor(request)
         if actor and str(actor.role_type).strip().lower() == "sub_admin":
             assigned_state_ids = get_sub_admin_assigned_state_ids(actor.id)
-            activities = activities.filter(state__in=assigned_state_ids)
+            assigned_task_ids = TasksRecord.objects.filter(
+                state__in=assigned_state_ids
+            ).values_list('id', flat=True)
+            activities = activities.filter(task_id__in=assigned_task_ids)
 
         # Query params
         emp_id = request.query_params.get('user_id', None)

@@ -140,65 +140,55 @@ def _get_session_token(request):
 
 
 def enforce_force_relogin(request, route_user_id=None, include_route_user_id=False):
-    user_id_candidates = _get_user_id_candidates(
-        request,
-        route_user_id=route_user_id,
-        include_route_user_id=include_route_user_id,
-    )
-    if not user_id_candidates:
+    actor = get_request_actor(request)
+    if not actor:
+        return None
+
+    normalized_role = str(actor.role_type).strip().lower()
+    if normalized_role not in PRIVILEGED_ROLES:
         return None
 
     session_token = _get_session_token(request)
+    if not session_token:
+        return Response(
+            {
+                "status": False,
+                "message": "Session expired. Please login again.",
+            },
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
-    for user_id in user_id_candidates:
-        user = AppUsers.objects.filter(id=user_id).first()
-        if not user:
-            continue
+    active_session = UserSession.objects.filter(
+        user_id=actor.id,
+        session_token=session_token,
+        is_active=True,
+    ).first()
+    if not active_session:
+        return Response(
+            {
+                "status": False,
+                "message": "Session expired. Please login again.",
+            },
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
-        normalized_role = str(user.role_type).strip().lower()
-        if normalized_role not in PRIVILEGED_ROLES:
-            continue
+    if actor.password_changed_at and active_session.created_at <= actor.password_changed_at:
+        return Response(
+            {
+                "status": False,
+                "message": "Session expired. Please login again.",
+            },
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
-        if not session_token:
-            return Response(
-                {
-                    "status": False,
-                    "message": "Session expired. Please login again.",
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        active_session = UserSession.objects.filter(
-            user_id=user.id,
-            session_token=session_token,
-            is_active=True,
-        ).first()
-        if not active_session:
-            return Response(
-                {
-                    "status": False,
-                    "message": "Session expired. Please login again.",
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        if user.password_changed_at and active_session.created_at <= user.password_changed_at:
-            return Response(
-                {
-                    "status": False,
-                    "message": "Session expired. Please login again.",
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        if user.force_relogin:
-            return Response(
-                {
-                    "status": False,
-                    "message": "Session expired. Please login again.",
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+    if actor.force_relogin:
+        return Response(
+            {
+                "status": False,
+                "message": "Session expired. Please login again.",
+            },
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
     return None
 

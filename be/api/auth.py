@@ -15,11 +15,7 @@ from .session_guard import (
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def app_users_api(request, id=None):
-    blocked_response = enforce_force_relogin(
-        request,
-        route_user_id=id,
-        include_route_user_id=True,
-    )
+    blocked_response = enforce_force_relogin(request)
     if blocked_response:
         return blocked_response
 

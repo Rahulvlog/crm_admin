@@ -75,15 +75,15 @@ def activity_record_api(request, id=None):
             page = 1
 
         try:
-            page_size = int(request.query_params.get('page_size', 20))
+            page_size = int(request.query_params.get('page_size', 50))
         except (TypeError, ValueError):
-            page_size = 20
+            page_size = 50
 
         if page < 1:
             page = 1
 
         if page_size < 1:
-            page_size = 20
+            page_size = 50
 
         if page_size > 100:
             page_size = 100

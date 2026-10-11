@@ -2,10 +2,45 @@
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import status
 from django.core.paginator import Paginator
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import is_naive, make_aware, get_current_timezone
 from .models import ActivityRecord, TasksRecord
 from .serializers import ActivityRecordSerializer, GetActivityRecordSerializer
 from .session_guard import enforce_force_relogin, get_request_actor, get_actor_accessible_state_ids
+
+
+def _parse_manual_datetime(value, field_name):
+    if value in (None, ""):
+        return None, None
+
+    parsed_value = parse_datetime(str(value))
+    if parsed_value is None:
+        return None, f"Invalid datetime format for {field_name}. Use ISO format."
+
+    if is_naive(parsed_value):
+        parsed_value = make_aware(parsed_value, get_current_timezone())
+
+    return parsed_value, None
+
+
+def _extract_manual_activity_dates(payload):
+    update_fields = {}
+
+    created_date, created_error = _parse_manual_datetime(payload.get("created_date"), "created_date")
+    if created_error:
+        return None, created_error
+    if created_date:
+        update_fields["created_date"] = created_date
+
+    updated_date, updated_error = _parse_manual_datetime(payload.get("updated_date"), "updated_date")
+    if updated_error:
+        return None, updated_error
+    if updated_date:
+        update_fields["updated_date"] = updated_date
+
+    return update_fields, None
 
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
@@ -116,17 +151,27 @@ def activity_record_api(request, id=None):
         serializer = ActivityRecordSerializer(data=request.data)
 
         if serializer.is_valid():
+            manual_dates, manual_date_error = _extract_manual_activity_dates(request.data)
+            if manual_date_error:
+                return Response({
+                    "status": False,
+                    "message": manual_date_error
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             task_id = serializer.validated_data.get("task_id")
             TasksRecord.objects.filter(id=task_id).update(status=1)
 
-            serializer.save()
+            created_activity = serializer.save()
+            if manual_dates:
+                ActivityRecord.objects.filter(id=created_activity.id).update(**manual_dates)
+                created_activity.refresh_from_db()
 
             
 
             return Response({
                 "status": True,
                 "message": "Activity created successfully",
-                "data": serializer.data
+                "data": ActivityRecordSerializer(created_activity).data
             })
 
         return Response({
@@ -155,13 +200,22 @@ def activity_record_api(request, id=None):
         )
 
         if serializer.is_valid():
+            manual_dates, manual_date_error = _extract_manual_activity_dates(request.data)
+            if manual_date_error:
+                return Response({
+                    "status": False,
+                    "message": manual_date_error
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-            serializer.save()
+            updated_activity = serializer.save()
+            if manual_dates:
+                ActivityRecord.objects.filter(id=updated_activity.id).update(**manual_dates)
+                updated_activity.refresh_from_db()
 
             return Response({
                 "status": True,
                 "message": "Activity updated successfully",
-                "data": serializer.data
+                "data": ActivityRecordSerializer(updated_activity).data
             })
 
         return Response({

@@ -9,7 +9,6 @@ from .session_guard import (
     enforce_force_relogin,
     PRIVILEGED_ROLES,
     get_request_actor,
-    get_actor_accessible_state_ids,
 )
 
 
@@ -25,7 +24,6 @@ def app_users_api(request, id=None):
     if request.method == 'GET':
         actor = get_request_actor(request)
         is_sub_admin = actor and str(actor.role_type).strip().lower() == "sub_admin"
-        accessible_state_ids = get_actor_accessible_state_ids(actor) if is_sub_admin else None
 
         # Single Data
         if id:
@@ -39,12 +37,7 @@ def app_users_api(request, id=None):
                     "message": "User not found"
                 })
 
-            if is_sub_admin and str(user.role_type).strip().lower() == "manager":
-                return Response({
-                    "status": False,
-                    "message": "User not found"
-                })
-            if is_sub_admin and user.state not in (accessible_state_ids or []):
+            if is_sub_admin and str(user.role_type).strip().lower() in {"manager", "sub_admin"}:
                 return Response({
                     "status": False,
                     "message": "User not found"
@@ -60,8 +53,7 @@ def app_users_api(request, id=None):
         # All Data
         users = AppUsers.objects.all()
         if is_sub_admin:
-            users = users.exclude(role_type__iexact="Manager")
-            users = users.filter(state__in=(accessible_state_ids or []))
+            users = users.exclude(role_type__iexact="Manager").exclude(role_type__iexact="sub_admin")
 
         serializer = GetAppUsersSerializer(users, many=True)
 

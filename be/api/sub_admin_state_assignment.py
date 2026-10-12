@@ -7,18 +7,22 @@ from .serializers import StateMasterSerializer, GetAppUsersSerializer
 from .session_guard import enforce_force_relogin, get_request_actor
 
 
-def _manager_guard(request):
+def _get_authenticated_actor(request):
     blocked_response = enforce_force_relogin(request)
     if blocked_response:
-        return blocked_response
+        return None, blocked_response
 
     actor = get_request_actor(request)
     if not actor:
-        return Response({
+        return None, Response({
             "status": False,
             "message": "x-user-id header is required."
         }, status=401)
 
+    return actor, None
+
+
+def _manager_only_guard(actor):
     if str(actor.role_type).strip().lower() != "manager":
         return Response({
             "status": False,
@@ -30,15 +34,25 @@ def _manager_guard(request):
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def sub_admin_state_assignment_api(request):
-    guard_response = _manager_guard(request)
-    if guard_response:
-        return guard_response
+    actor, auth_error_response = _get_authenticated_actor(request)
+    if auth_error_response:
+        return auth_error_response
+
+    normalized_role = str(actor.role_type).strip().lower()
 
     if request.method == 'GET':
+        if normalized_role not in {"manager", "sub_admin"}:
+            return Response({
+                "status": False,
+                "message": "Only manager or sub admin can view state assignments."
+            }, status=403)
+
         sub_admin_id = request.query_params.get('sub_admin_id')
         assignments = SubAdminStateAssignment.objects.select_related('sub_admin', 'state').all().order_by('-id')
 
-        if sub_admin_id:
+        if normalized_role == "sub_admin":
+            assignments = assignments.filter(sub_admin_id=actor.id)
+        elif sub_admin_id:
             assignments = assignments.filter(sub_admin_id=sub_admin_id)
 
         data = []
@@ -58,6 +72,10 @@ def sub_admin_state_assignment_api(request):
             "status": True,
             "data": data
         })
+
+    manager_only_response = _manager_only_guard(actor)
+    if manager_only_response:
+        return manager_only_response
 
     request_data = request.data
     sub_admin_id = request_data.get('sub_admin_id')
